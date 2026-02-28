@@ -97,6 +97,48 @@ export default function EventDetailsPage() {
         ? Math.round(((booking.paidAmount || 0) / booking.totalAmount) * 100)
         : 0;
 
+    const [statusLoading, setStatusLoading] = useState(false);
+
+    const handleStatusChange = async (newStatus: string) => {
+        if (!booking) return;
+        setStatusLoading(true);
+        try {
+            const res = await api.patch(`/bookings/${booking.id}`, { status: newStatus });
+            if (res.data?.data) {
+                setBooking(normalizeBooking(res.data.data));
+                toast.success(`Booking ${newStatus.toLowerCase()} successfully`);
+            }
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || `Failed to update status`);
+        } finally {
+            setStatusLoading(false);
+        }
+    };
+
+    /* Status transition buttons based on current status */
+    const getStatusActions = () => {
+        if (!booking) return [];
+        switch (booking.status) {
+            case "TENTATIVE":
+                return [
+                    { label: "Confirm Booking", status: "CONFIRMED", className: "bg-green-600 hover:bg-green-700 text-white" },
+                    { label: "Cancel", status: "CANCELLED", className: "bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30" },
+                ];
+            case "CONFIRMED":
+                return [
+                    { label: "Mark Completed", status: "COMPLETED", className: "bg-blue-600 hover:bg-blue-700 text-white" },
+                    { label: "Cancel", status: "CANCELLED", className: "bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30" },
+                ];
+            case "COMPLETED":
+            case "CANCELLED":
+                return [];
+            default:
+                return [];
+        }
+    };
+
+    const statusActions = getStatusActions();
+
     return (
         <div>
             {/* Header */}
@@ -112,13 +154,28 @@ export default function EventDetailsPage() {
                         <StatusBadge status={booking.status} />
                     </div>
                     <p className="text-sm text-muted mt-1">
-                        {booking.eventType} • Booking #{booking.id.slice(0, 8)}
+                        {booking.eventType} • Booking #{booking.bookingNumber || booking.id.slice(0, 8)}
                     </p>
                 </div>
-                <button className="btn-outline">
-                    <Edit className="h-4 w-4" />
-                    Edit
-                </button>
+                <div className="flex items-center gap-2">
+                    {statusActions.map((action) => (
+                        <button
+                            key={action.status}
+                            onClick={() => handleStatusChange(action.status)}
+                            disabled={statusLoading}
+                            className={cn(
+                                "px-4 py-2 text-sm font-medium rounded-lg transition-all disabled:opacity-50",
+                                action.className
+                            )}
+                        >
+                            {statusLoading ? "Updating..." : action.label}
+                        </button>
+                    ))}
+                    <button className="btn-outline">
+                        <Edit className="h-4 w-4" />
+                        Edit
+                    </button>
+                </div>
             </div>
 
             {/* Quick Stats */}
