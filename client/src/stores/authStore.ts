@@ -30,6 +30,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
 
     signIn: async (_email: string, _password: string) => {
         // Bypass — just set demo user
+        localStorage.setItem("access_token", "DEMO_TOKEN");
         set({
             user: DEMO_USER,
             loading: false,
@@ -39,12 +40,13 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
     },
 
     signOut: () => {
+        localStorage.removeItem("access_token");
         set({ user: null, isOwner: false, isManager: false });
-        window.location.href = "/login";
     },
 
     loadProfile: async () => {
         // Bypass — always return demo user
+        localStorage.setItem("access_token", "DEMO_TOKEN");
         set({
             user: DEMO_USER,
             isOwner: true,

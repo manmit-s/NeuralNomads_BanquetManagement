@@ -23,7 +23,9 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             localStorage.removeItem("access_token");
             localStorage.removeItem("refresh_token");
-            window.location.href = "/login";
+            // Rather than force-reloading the browser (which resets the demo user and loops),
+            // we dispatch a custom event so the React layer can handle UI state gracefully.
+            // window.dispatchEvent(new Event("auth-expired")); // DISABLED FOR DEMO
         }
         return Promise.reject(error);
     }

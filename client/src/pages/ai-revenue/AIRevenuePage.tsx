@@ -24,9 +24,7 @@ import {
     ResponsiveContainer,
     PieChart as RechartsPieChart,
     Pie,
-    Cell,
-    LineChart,
-    Line
+    Cell
 } from "recharts";
 import PageHeader from "@/components/ui/PageHeader";
 import GlassCard from "@/components/ui/GlassCard";
@@ -65,28 +63,36 @@ const COLORS = ['#D4AF37', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#EF4444'
 export default function AIRevenuePage() {
     const { user } = useAuthStore();
     const [data, setData] = useState<AIRevenueData | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [initialFetchDone, setInitialFetchDone] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const isLoadingRef = useRef(false);
+
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [message, setMessage] = useState("");
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
+    const [showFullSummary, setShowFullSummary] = useState(false);
 
     const isOwner = user?.role === "OWNER";
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [chatHistory, loading]);
+    }, [chatHistory, isLoading]);
 
-    // Initial silent data load to populate charts and generate initial suggestions
+    const [cooldown, setCooldown] = useState(0);
+
+    // Initial load removed - user must trigger manually
+
+    // Cooldown timer effect
     useEffect(() => {
-        if (!initialFetchDone && user) {
-            setInitialFetchDone(true);
-            sendMessage("Analyze current performance and provide strategic suggestions.", true);
+        if (cooldown > 0) {
+            const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+            return () => clearTimeout(timer);
         }
-    }, [user, initialFetchDone]);
+    }, [cooldown]);
 
     const sendMessage = async (customMessage?: string, isInitialLoad = false) => {
+        if (isLoading || isLoadingRef.current || cooldown > 0) return;
+
         const msg = customMessage || message;
         if (!msg.trim()) return;
 
@@ -97,7 +103,9 @@ export default function AIRevenuePage() {
             setMessage("");
         }
 
-        setLoading(true);
+        console.log("AI CALL TRIGGERED");
+        setIsLoading(true);
+        isLoadingRef.current = true;
 
         try {
             const payload: any = {
@@ -106,15 +114,29 @@ export default function AIRevenuePage() {
             };
 
             const res = await api.post("/ai/revenue", payload);
-            const result: AIRevenueData = res.data.data;
+            const result: AIRevenueData = res.data;
             setData(result);
+
+            // Trim large AI output to 1500 chars
+            const optimizedText = (result.ai_response || "").slice(0, 1500);
 
             setChatHistory((prev) => [
                 ...prev,
-                { role: "assistant", content: result.ai_response },
+                { role: "assistant", content: optimizedText },
             ]);
         } catch (err: any) {
-            const errorMessage = err?.response?.data?.error || "AI service temporarily unavailable";
+            console.error("Frontend AI error:", err);
+            const status = err?.response?.status;
+            let errorMessage = "AI temporarily unavailable. Please retry.";
+
+            if (status === 429) {
+                errorMessage = "AI is temporarily rate-limited. Please wait a few seconds.";
+            } else if (status === 500) {
+                errorMessage = "AI temporarily unavailable. Please retry.";
+            } else if (err?.response?.data?.error) {
+                errorMessage = err.response.data.error;
+            }
+
             setErrorMsg(errorMessage);
 
             if (!isInitialLoad) {
@@ -124,7 +146,9 @@ export default function AIRevenuePage() {
                 ]);
             }
         } finally {
-            setLoading(false);
+            setIsLoading(false);
+            isLoadingRef.current = false;
+            setCooldown(5); // 5-second cooldown
         }
     };
 
@@ -272,14 +296,22 @@ export default function AIRevenuePage() {
                 )}
             </div>
 
-            {/* AI General Suggestions Sidebar */}
+            {/* AI Summary Sidebar (Collapsible) */}
             <div className="col-span-2 space-y-4">
                 <GlassCard className="h-full">
                     <div className="p-5 border-b border-border flex items-center justify-between">
                         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                             <Sparkles className="h-4 w-4 text-gold-400" />
-                            AI Strategy Assessment
+                            AI Summary
                         </h3>
+                        {data && (
+                            <button
+                                onClick={() => setShowFullSummary(!showFullSummary)}
+                                className="text-[10px] text-gold-400 border border-gold-500/20 px-2 py-0.5 rounded-md hover:bg-gold-500/10 transition-colors"
+                            >
+                                {showFullSummary ? "Collapse" : "Show Details"}
+                            </button>
+                        )}
                     </div>
                     <div className="p-5 space-y-6 overflow-y-auto" style={{ maxHeight: "400px" }}>
                         {data?.branch_summary.map((branch, idx) => (
@@ -289,16 +321,34 @@ export default function AIRevenuePage() {
                                     {branch.is_weak && <span className="bg-red-500/10 text-red-400 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Needs Attention</span>}
                                     {branch.is_dominant && <span className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Top Performer</span>}
                                 </div>
-                                <div className="bg-surface/50 p-3 rounded-lg border border-border/50 text-xs leading-relaxed text-gray-300">
-                                    {branch.suggestion}
-                                </div>
+                                {showFullSummary && (
+                                    <div className="bg-surface/50 p-3 rounded-lg border border-border/50 text-xs leading-relaxed text-gray-300">
+                                        {branch.suggestion}
+                                    </div>
+                                )}
                             </div>
                         ))}
 
-                        {(!data || loading) && !chatHistory.length && (
-                            <div className="flex items-center justify-center p-8 text-muted text-sm gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin text-gold-400" />
-                                <span>Analyzing strategy...</span>
+                        {(!data || isLoading) && !chatHistory.length && (
+                            <div className="flex flex-col items-center justify-center p-8 text-muted text-sm gap-4">
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin text-gold-400" />
+                                        <span>Analyzing strategy...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="h-8 w-8 text-gold-500/50 mb-2" />
+                                        <p className="text-center">Ready to assess branch performance and build strategies.</p>
+                                        <button
+                                            onClick={() => sendMessage("Analyze current performance and provide strategic suggestions.", true)}
+                                            disabled={isLoading || cooldown > 0}
+                                            className="px-4 py-2 mt-2 rounded-lg bg-gold-gradient text-black font-medium text-xs hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                                        >
+                                            Analyze Strategy
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
 
@@ -387,9 +437,24 @@ export default function AIRevenuePage() {
                     </div>
                     <div className="p-5 space-y-6 flex flex-col items-center justify-center min-h-[200px] text-center">
                         {!data && !errorMsg ? (
-                            <div className="flex flex-col items-center justify-center text-muted gap-3">
-                                <Loader2 className="h-6 w-6 animate-spin text-gold-400" />
-                                <span className="text-sm">Assessing branch health...</span>
+                            <div className="flex flex-col items-center justify-center text-muted gap-4">
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="h-6 w-6 animate-spin text-gold-400" />
+                                        <span className="text-sm">Assessing branch health...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="text-sm mb-2">Ready to assess branch.</span>
+                                        <button
+                                            onClick={() => sendMessage("Analyze current performance and provide strategic suggestions.", true)}
+                                            disabled={isLoading || cooldown > 0}
+                                            className="px-4 py-2 rounded-lg bg-gold-gradient text-black font-medium text-xs hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                                        >
+                                            Analyze AI Health
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         ) : errorMsg ? (
                             <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-start gap-3 w-full">
@@ -424,8 +489,8 @@ export default function AIRevenuePage() {
                 action={
                     <div className="flex items-center gap-2">
                         <div className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gold-500/10 text-gold-400 border border-gold-500/20 flex items-center gap-2">
-                            <div className={cn("w-2 h-2 rounded-full", loading ? "bg-amber-400 animate-pulse" : "bg-emerald-400")} />
-                            AI Sync {loading ? "Active" : "Stable"}
+                            <div className={cn("w-2 h-2 rounded-full", isLoading ? "bg-amber-400 animate-pulse" : "bg-emerald-400")} />
+                            AI Sync {isLoading ? "Active" : "Stable"}
                         </div>
                     </div>
                 }
@@ -444,15 +509,15 @@ export default function AIRevenuePage() {
                         </div>
                         <div>
                             <h3 className="text-sm font-semibold text-white">Revenue Copilot Chat</h3>
-                            <p className="text-[10px] text-muted">Powered by Groq LLM</p>
+                            <p className="text-[10px] text-muted">Powered by AI Engine</p>
                         </div>
                     </div>
-                    {loading && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
+                    {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
                 </div>
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-background/30 backdrop-blur-sm max-h-[500px] min-h-[300px]">
-                    {chatHistory.length === 0 && !loading && !errorMsg && (
+                    {chatHistory.length === 0 && !isLoading && !errorMsg && (
                         <div className="flex flex-col items-center justify-center h-full text-center space-y-4 pt-10">
                             <div className="h-12 w-12 rounded-2xl bg-gold-500/10 border border-gold-500/20 flex items-center justify-center mb-2">
                                 <Sparkles className="h-6 w-6 text-gold-400" />
@@ -499,7 +564,7 @@ export default function AIRevenuePage() {
                         </div>
                     ))}
 
-                    {loading && (
+                    {isLoading && (
                         <div className="flex justify-start">
                             <div className="bg-surface border border-border rounded-2xl rounded-bl-none px-5 py-3.5 flex items-center gap-3 text-sm text-muted shadow-sm">
                                 <span className="flex gap-1">
@@ -523,17 +588,17 @@ export default function AIRevenuePage() {
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Ask about seasonal strategy, upselling operations, or risk alerts…"
-                            disabled={loading}
+                            placeholder={cooldown > 0 ? `Please wait ${cooldown}s...` : "Ask about seasonal strategy, upselling operations, or risk alerts…"}
+                            disabled={isLoading || cooldown > 0}
                             className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-sm text-white placeholder-muted/50 focus:outline-none focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20 transition-all shadow-inner disabled:opacity-50"
                         />
                         <button
                             id="revenue-chat-send"
                             onClick={() => sendMessage()}
-                            disabled={loading || !message.trim()}
+                            disabled={isLoading || cooldown > 0 || !message.trim()}
                             className={cn(
                                 "px-5 py-3 rounded-xl transition-all flex items-center gap-2",
-                                message.trim() && !loading
+                                message.trim() && !isLoading && cooldown === 0
                                     ? "bg-gold-gradient text-black font-medium shadow-glow-sm hover:shadow-glow hover:scale-105"
                                     : "bg-surface text-muted border border-border cursor-not-allowed"
                             )}

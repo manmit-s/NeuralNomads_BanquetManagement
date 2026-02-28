@@ -28,11 +28,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
-    const { user, loading, loadProfile } = useAuthStore();
+    const { user, loading, loadProfile, signOut } = useAuthStore();
 
     useEffect(() => {
         loadProfile();
     }, [loadProfile]);
+
+    useEffect(() => {
+        const handleAuthExpired = () => {
+            signOut();
+        };
+        window.addEventListener("auth-expired", handleAuthExpired);
+        return () => window.removeEventListener("auth-expired", handleAuthExpired);
+    }, [signOut]);
 
     if (loading) return <LoadingSpinner fullScreen />;
 
