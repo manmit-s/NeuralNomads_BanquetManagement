@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     Package,
@@ -12,11 +12,17 @@ import GlassCard from "@/components/ui/GlassCard";
 import Modal from "@/components/ui/Modal";
 import { cn, formatCurrency } from "@/lib/utils";
 import { DEMO_INVENTORY, type DemoInventoryItem } from "@/data/demo";
+import { useApiWithFallback } from "@/lib/useApiWithFallback";
+import { normalizeInventory } from "@/lib/normalizers";
 import { useBranchStore } from "@/stores/branchStore";
 import toast from "react-hot-toast";
 
 export default function InventoryPage() {
-    const [items, setItems] = useState<DemoInventoryItem[]>(DEMO_INVENTORY);
+    const { data: apiItems } = useApiWithFallback<DemoInventoryItem[]>("/inventory", DEMO_INVENTORY, { transform: normalizeInventory });
+    const [items, setItems] = useState<DemoInventoryItem[]>(apiItems);
+
+    // Sync when API data arrives
+    useEffect(() => { setItems(apiItems); }, [apiItems]);
     const [search, setSearch] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [filter, setFilter] = useState<"all" | "low">("all");

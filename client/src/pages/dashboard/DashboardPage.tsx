@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     DollarSign,
@@ -17,6 +17,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { useBranchStore } from "@/stores/branchStore";
+import api from "@/lib/api";
 import {
     DEMO_BRANCH_PERFORMANCE,
     DEMO_INVENTORY,
@@ -27,6 +28,27 @@ import {
 
 export default function DashboardPage() {
     const { selectedBranchId, branches } = useBranchStore();
+    const [apiSummary, setApiSummary] = useState<any>(null);
+    const [isDemo, setIsDemo] = useState(true);
+
+    // Try to fetch dashboard summary from API
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const params: Record<string, string> = {};
+                if (selectedBranchId) params.branchId = selectedBranchId;
+                const res = await api.get("/reports/dashboard", { params, timeout: 5000 });
+                if (!cancelled && res.data?.data) {
+                    setApiSummary(res.data.data);
+                    setIsDemo(false);
+                }
+            } catch {
+                if (!cancelled) setIsDemo(true);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [selectedBranchId]);
 
     const selectedBranchName = useMemo(() => {
         if (!selectedBranchId) return null;
@@ -65,8 +87,9 @@ export default function DashboardPage() {
         [selectedBranchId]
     );
 
-    /* ── recompute KPIs from filtered data ── */
+    /* ── recompute KPIs — prefer API data, fallback to demo ── */
     const summary = useMemo(() => {
+        if (!isDemo && apiSummary) return apiSummary;
         const confirmed = filteredBookings.filter((b) => b.status === "CONFIRMED");
         const now = new Date();
         const thisMonthLeads = filteredLeads.filter((l) => {
@@ -82,7 +105,7 @@ export default function DashboardPage() {
                 (b) => b.status !== "CANCELLED" && b.status !== "COMPLETED"
             ).length,
         };
-    }, [filteredBookings, filteredLeads]);
+    }, [filteredBookings, filteredLeads, isDemo, apiSummary]);
 
     /* ── branch performance table (filter or show all) ── */
     const branchData = useMemo(

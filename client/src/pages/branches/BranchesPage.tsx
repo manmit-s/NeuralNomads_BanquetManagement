@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     Building2,
@@ -14,10 +14,15 @@ import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import { cn, getInitials } from "@/lib/utils";
 import { DEMO_BRANCHES, type DemoBranch } from "@/data/demo";
+import { useApiWithFallback } from "@/lib/useApiWithFallback";
 import toast from "react-hot-toast";
 
 export default function BranchesPage() {
-    const [branches, setBranches] = useState<DemoBranch[]>(DEMO_BRANCHES);
+    const { data: apiBranches } = useApiWithFallback<DemoBranch[]>("/branches", DEMO_BRANCHES);
+    const [branches, setBranches] = useState<DemoBranch[]>(apiBranches);
+
+    // Sync when API data arrives
+    useEffect(() => { setBranches(apiBranches); }, [apiBranches]);
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState({ name: "", address: "", phone: "", city: "", state: "" });
 

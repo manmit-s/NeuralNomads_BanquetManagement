@@ -17,29 +17,33 @@ import GlassCard from "@/components/ui/GlassCard";
 import EmptyState from "@/components/ui/EmptyState";
 import { cn, formatCurrency } from "@/lib/utils";
 import { DEMO_BOOKINGS } from "@/data/demo";
+import { useApiWithFallback } from "@/lib/useApiWithFallback";
+import { normalizeBookings } from "@/lib/normalizers";
+import type { Booking } from "@/types";
 import { useNavigate } from "react-router-dom";
 
 export default function BookingsPage() {
     const navigate = useNavigate();
+    const { data: bookingsData } = useApiWithFallback<Booking[]>("/bookings", DEMO_BOOKINGS, { transform: normalizeBookings });
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [page, setPage] = useState(1);
     const limit = 15;
 
     const allBookings = useMemo(() => {
-        let filtered = [...DEMO_BOOKINGS];
+        let filtered = [...bookingsData];
         if (statusFilter !== "ALL") filtered = filtered.filter((b) => b.status === statusFilter);
         if (search) {
             const q = search.toLowerCase();
             filtered = filtered.filter(
                 (b) =>
-                    b.customerName.toLowerCase().includes(q) ||
-                    b.eventType.toLowerCase().includes(q) ||
-                    b.bookingNumber.toLowerCase().includes(q)
+                    (b.customerName || "").toLowerCase().includes(q) ||
+                    (b.eventType || "").toLowerCase().includes(q) ||
+                    (b.bookingNumber || "").toLowerCase().includes(q)
             );
         }
         return filtered;
-    }, [statusFilter, search]);
+    }, [bookingsData, statusFilter, search]);
 
     const total = allBookings.length;
     const totalPages = Math.ceil(total / limit);

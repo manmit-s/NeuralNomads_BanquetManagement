@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Users,
@@ -14,6 +14,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Modal from "@/components/ui/Modal";
 import { cn, formatDate, EVENT_TYPE_COLORS, LEAD_STATUS_LABELS } from "@/lib/utils";
 import { DEMO_LEADS } from "@/data/demo";
+import { useApiWithFallback } from "@/lib/useApiWithFallback";
 import type { Lead, LeadStatus } from "@/types";
 import toast from "react-hot-toast";
 
@@ -26,8 +27,11 @@ const KANBAN_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
 ];
 
 export default function LeadsPage() {
-    const [leads, setLeads] = useState<Lead[]>(DEMO_LEADS);
-    const [loading] = useState(false);
+    const { data: apiLeads, loading } = useApiWithFallback<Lead[]>("/leads", DEMO_LEADS);
+    const [leads, setLeads] = useState<Lead[]>(apiLeads);
+
+    // Sync when API data arrives
+    useEffect(() => { setLeads(apiLeads); }, [apiLeads]);
     const [search, setSearch] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [draggedLead, setDraggedLead] = useState<Lead | null>(null);

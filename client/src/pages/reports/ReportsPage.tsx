@@ -36,7 +36,7 @@ import {
 // Chart palette — dark gold theme
 const GOLD = "#D4AF37";
 
-// Use centralized demo data
+// Demo fallback data — used when API is unreachable
 const revenueData = DEMO_REVENUE_DATA;
 const eventTypeData = DEMO_EVENT_TYPE_DATA;
 const branchData = DEMO_BRANCH_CHART_DATA;
