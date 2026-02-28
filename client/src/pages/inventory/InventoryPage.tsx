@@ -12,6 +12,7 @@ import GlassCard from "@/components/ui/GlassCard";
 import Modal from "@/components/ui/Modal";
 import { cn, formatCurrency } from "@/lib/utils";
 import { DEMO_INVENTORY, type DemoInventoryItem } from "@/data/demo";
+import { useBranchStore } from "@/stores/branchStore";
 import toast from "react-hot-toast";
 
 export default function InventoryPage() {
@@ -43,6 +44,7 @@ export default function InventoryPage() {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        const { selectedBranchId } = useBranchStore.getState();
         const newItem: DemoInventoryItem = {
             id: `demo-inv-${Date.now()}`,
             name: form.name,
@@ -51,6 +53,7 @@ export default function InventoryPage() {
             minimumStock: parseInt(form.minimumStock),
             unit: form.unit,
             costPerUnit: parseFloat(form.costPerUnit),
+            branchId: selectedBranchId || "demo-001",
         };
         setItems((prev) => [newItem, ...prev]);
         toast.success("Item added!");

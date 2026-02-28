@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
     DollarSign,
@@ -16,38 +16,115 @@ import GlassCard from "@/components/ui/GlassCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
+import { useBranchStore } from "@/stores/branchStore";
 import {
-    DEMO_DASHBOARD_SUMMARY,
     DEMO_BRANCH_PERFORMANCE,
-    DEMO_TODAY_EVENTS,
     DEMO_INVENTORY,
     DEMO_BOOKINGS,
     DEMO_LEADS,
+    DEMO_HALLS,
 } from "@/data/demo";
 
 export default function DashboardPage() {
-    const summary = DEMO_DASHBOARD_SUMMARY;
-    const branchData = DEMO_BRANCH_PERFORMANCE;
-    const [loading] = useState(false);
+    const { selectedBranchId, branches } = useBranchStore();
 
-    const todayEvents = DEMO_TODAY_EVENTS;
-    const lowStockCount = DEMO_INVENTORY.filter(
+    const selectedBranchName = useMemo(() => {
+        if (!selectedBranchId) return null;
+        return branches.find((b) => b.id === selectedBranchId)?.name ?? null;
+    }, [selectedBranchId, branches]);
+
+    /* ── derive branchId for a booking via its hall ── */
+    const hallBranchMap = useMemo(() => {
+        const map = new Map<string, string>();
+        DEMO_HALLS.forEach((h) => map.set(h.id, h.branchId));
+        return map;
+    }, []);
+
+    /* ── filtered collections ── */
+    const filteredBookings = useMemo(
+        () =>
+            selectedBranchId
+                ? DEMO_BOOKINGS.filter((b) => hallBranchMap.get(b.hallId) === selectedBranchId)
+                : DEMO_BOOKINGS,
+        [selectedBranchId, hallBranchMap]
+    );
+
+    const filteredLeads = useMemo(
+        () =>
+            selectedBranchId
+                ? DEMO_LEADS.filter((l) => l.branchId === selectedBranchId)
+                : DEMO_LEADS,
+        [selectedBranchId]
+    );
+
+    const filteredInventory = useMemo(
+        () =>
+            selectedBranchId
+                ? DEMO_INVENTORY.filter((i) => i.branchId === selectedBranchId)
+                : DEMO_INVENTORY,
+        [selectedBranchId]
+    );
+
+    /* ── recompute KPIs from filtered data ── */
+    const summary = useMemo(() => {
+        const confirmed = filteredBookings.filter((b) => b.status === "CONFIRMED");
+        const now = new Date();
+        const thisMonthLeads = filteredLeads.filter((l) => {
+            const ld = new Date(l.createdAt);
+            return ld.getMonth() === now.getMonth() && ld.getFullYear() === now.getFullYear();
+        });
+        return {
+            monthlyRevenue: confirmed.reduce((s, b) => s + b.totalAmount, 0),
+            totalOutstanding: filteredBookings.reduce((s, b) => s + b.balanceAmount, 0),
+            totalLeadsThisMonth: thisMonthLeads.length,
+            activeBookings: confirmed.length,
+            upcomingEvents: filteredBookings.filter(
+                (b) => b.status !== "CANCELLED" && b.status !== "COMPLETED"
+            ).length,
+        };
+    }, [filteredBookings, filteredLeads]);
+
+    /* ── branch performance table (filter or show all) ── */
+    const branchData = useMemo(
+        () =>
+            selectedBranchId
+                ? DEMO_BRANCH_PERFORMANCE.filter((b) => b.branchId === selectedBranchId)
+                : DEMO_BRANCH_PERFORMANCE,
+        [selectedBranchId]
+    );
+
+    /* ── today's events from filtered bookings ── */
+    const todayEvents = useMemo(() => {
+        const now = new Date();
+        return filteredBookings
+            .filter((b) => {
+                if (!b.eventDate) return false;
+                const bd = new Date(b.eventDate);
+                return (
+                    bd.getDate() === now.getDate() &&
+                    bd.getMonth() === now.getMonth() &&
+                    bd.getFullYear() === now.getFullYear() &&
+                    b.status !== "CANCELLED"
+                );
+            })
+            .map((b) => ({
+                time: `${b.startTime} - ${b.endTime}`,
+                name: b.customerName,
+                guests: b.guestCount,
+                type: b.eventType,
+                hall: b.hall?.name || "TBD",
+            }));
+    }, [filteredBookings]);
+
+    const lowStockCount = filteredInventory.filter(
         (i) => i.currentStock < i.minimumStock
     ).length;
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin h-8 w-8 border-2 border-gold-500/20 border-t-gold-500 rounded-full" />
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-6">
             <PageHeader
                 title="Dashboard"
-                subtitle={`Welcome back • ${formatDate(new Date())}`}
+                subtitle={`${selectedBranchName ? selectedBranchName : "All Branches"} • ${formatDate(new Date())}`}
             />
 
             {/* KPI Cards */}
@@ -172,7 +249,7 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                             <ActionItem
                                 icon={DollarSign}
-                                label={`${DEMO_BOOKINGS.filter(b => b.balanceAmount > 0 && b.status === "CONFIRMED").length} outstanding payments`}
+                                label={`${filteredBookings.filter(b => b.balanceAmount > 0 && b.status === "CONFIRMED").length} outstanding payments`}
                                 sublabel={formatCurrency(summary.totalOutstanding)}
                                 color="text-red-400"
                                 bgColor="bg-red-500/10"
@@ -186,7 +263,7 @@ export default function DashboardPage() {
                             />
                             <ActionItem
                                 icon={Users}
-                                label={`${DEMO_LEADS.filter(l => l.status === "CALL" || l.status === "VISIT").length} pending follow-ups`}
+                                label={`${filteredLeads.filter(l => l.status === "CALL" || l.status === "VISIT").length} pending follow-ups`}
                                 sublabel="Due today"
                                 color="text-blue-400"
                                 bgColor="bg-blue-500/10"

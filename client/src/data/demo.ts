@@ -591,21 +591,22 @@ export interface DemoInventoryItem {
     unit: string;
     costPerUnit: number;
     lastRestocked?: string;
+    branchId: string;
 }
 
 export const DEMO_INVENTORY: DemoInventoryItem[] = [
-    { id: id(301), name: "Dinner Plates (Bone China)", category: "Crockery", currentStock: 480, minimumStock: 200, unit: "pcs", costPerUnit: 180, lastRestocked: d(2, 10) },
-    { id: id(302), name: "Wine Glasses", category: "Glassware", currentStock: 75, minimumStock: 100, unit: "pcs", costPerUnit: 280, lastRestocked: d(1, 15) },
-    { id: id(303), name: "Table Cloths (White Satin)", category: "Linen", currentStock: 32, minimumStock: 50, unit: "pcs", costPerUnit: 950, lastRestocked: d(1, 20) },
-    { id: id(304), name: "Silver Serving Spoons", category: "Cutlery", currentStock: 220, minimumStock: 100, unit: "pcs", costPerUnit: 200, lastRestocked: d(2, 5) },
-    { id: id(305), name: "Round Tables (6ft)", category: "Furniture", currentStock: 28, minimumStock: 20, unit: "pcs", costPerUnit: 5500, lastRestocked: d(1, 1) },
-    { id: id(306), name: "Chafing Dishes (Steel)", category: "Equipment", currentStock: 10, minimumStock: 15, unit: "pcs", costPerUnit: 4200, lastRestocked: d(2, 1) },
-    { id: id(307), name: "Fairy Lights (100m)", category: "Decoration", currentStock: 6, minimumStock: 10, unit: "rolls", costPerUnit: 1400, lastRestocked: d(1, 25) },
-    { id: id(308), name: "Cloth Napkins (Gold)", category: "Linen", currentStock: 520, minimumStock: 300, unit: "pcs", costPerUnit: 95, lastRestocked: d(2, 12) },
-    { id: id(309), name: "Champagne Flutes", category: "Glassware", currentStock: 45, minimumStock: 60, unit: "pcs", costPerUnit: 350, lastRestocked: d(1, 18) },
-    { id: id(310), name: "Banquet Chairs (Tiffany)", category: "Furniture", currentStock: 350, minimumStock: 200, unit: "pcs", costPerUnit: 2800, lastRestocked: d(2, 8) },
-    { id: id(311), name: "LED Centerpieces", category: "Decoration", currentStock: 18, minimumStock: 25, unit: "pcs", costPerUnit: 1800, lastRestocked: d(1, 28) },
-    { id: id(312), name: "Stainless Steel Cutlery Set", category: "Cutlery", currentStock: 400, minimumStock: 250, unit: "sets", costPerUnit: 320, lastRestocked: d(2, 15) },
+    { id: id(301), name: "Dinner Plates (Bone China)", category: "Crockery", currentStock: 480, minimumStock: 200, unit: "pcs", costPerUnit: 180, lastRestocked: d(2, 10), branchId: id(1) },
+    { id: id(302), name: "Wine Glasses", category: "Glassware", currentStock: 75, minimumStock: 100, unit: "pcs", costPerUnit: 280, lastRestocked: d(1, 15), branchId: id(2) },
+    { id: id(303), name: "Table Cloths (White Satin)", category: "Linen", currentStock: 32, minimumStock: 50, unit: "pcs", costPerUnit: 950, lastRestocked: d(1, 20), branchId: id(1) },
+    { id: id(304), name: "Silver Serving Spoons", category: "Cutlery", currentStock: 220, minimumStock: 100, unit: "pcs", costPerUnit: 200, lastRestocked: d(2, 5), branchId: id(3) },
+    { id: id(305), name: "Round Tables (6ft)", category: "Furniture", currentStock: 28, minimumStock: 20, unit: "pcs", costPerUnit: 5500, lastRestocked: d(1, 1), branchId: id(2) },
+    { id: id(306), name: "Chafing Dishes (Steel)", category: "Equipment", currentStock: 10, minimumStock: 15, unit: "pcs", costPerUnit: 4200, lastRestocked: d(2, 1), branchId: id(4) },
+    { id: id(307), name: "Fairy Lights (100m)", category: "Decoration", currentStock: 6, minimumStock: 10, unit: "rolls", costPerUnit: 1400, lastRestocked: d(1, 25), branchId: id(1) },
+    { id: id(308), name: "Cloth Napkins (Gold)", category: "Linen", currentStock: 520, minimumStock: 300, unit: "pcs", costPerUnit: 95, lastRestocked: d(2, 12), branchId: id(3) },
+    { id: id(309), name: "Champagne Flutes", category: "Glassware", currentStock: 45, minimumStock: 60, unit: "pcs", costPerUnit: 350, lastRestocked: d(1, 18), branchId: id(4) },
+    { id: id(310), name: "Banquet Chairs (Tiffany)", category: "Furniture", currentStock: 350, minimumStock: 200, unit: "pcs", costPerUnit: 2800, lastRestocked: d(2, 8), branchId: id(1) },
+    { id: id(311), name: "LED Centerpieces", category: "Decoration", currentStock: 18, minimumStock: 25, unit: "pcs", costPerUnit: 1800, lastRestocked: d(1, 28), branchId: id(2) },
+    { id: id(312), name: "Stainless Steel Cutlery Set", category: "Cutlery", currentStock: 400, minimumStock: 250, unit: "sets", costPerUnit: 320, lastRestocked: d(2, 15), branchId: id(3) },
 ];
 
 // ─── DASHBOARD ────────────────────────────────────────────────
