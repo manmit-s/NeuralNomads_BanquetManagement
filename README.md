@@ -17,7 +17,7 @@
 
 ---
 
-## Project Structure
+## Project Structure 
 
 ```
 banquet_management/
