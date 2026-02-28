@@ -7,6 +7,7 @@ import eventRoutes from "./event.routes.js";
 import inventoryRoutes from "./inventory.routes.js";
 import billingRoutes from "./billing.routes.js";
 import reportRoutes from "./report.routes.js";
+import { prisma } from "../lib/prisma.js";
 
 const router = Router();
 
@@ -19,9 +20,21 @@ router.use("/inventory", inventoryRoutes);
 router.use("/billing", billingRoutes);
 router.use("/reports", reportRoutes);
 
-// Health check
-router.get("/health", (_req, res) => {
-    res.json({ success: true, message: "API is running", timestamp: new Date().toISOString() });
+// Health check (no auth needed)
+router.get("/health", async (_req, res) => {
+    let dbStatus = "disconnected";
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        dbStatus = "connected";
+    } catch (e: any) {
+        dbStatus = `error: ${e.message?.slice(0, 120)}`;
+    }
+    res.json({
+        success: true,
+        message: "API is running",
+        database: dbStatus,
+        timestamp: new Date().toISOString(),
+    });
 });
 
 export default router;

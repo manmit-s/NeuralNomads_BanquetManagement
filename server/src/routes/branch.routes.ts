@@ -7,11 +7,12 @@ import { createBranchSchema, updateBranchSchema } from "../validators/schemas.js
 
 const router = Router();
 
-// All branch routes require authentication
-router.use(authenticate);
-
+// Public route — needed for signup page branch selector
 router.get("/", BranchController.getAll);
 router.get("/:id", BranchController.getById);
+
+// Protected routes
+router.use(authenticate);
 
 // Only owners can create / update / deactivate branches
 router.post("/", authorize("OWNER"), validate(createBranchSchema), BranchController.create);

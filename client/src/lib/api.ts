@@ -22,11 +22,11 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
-            // In demo mode we skip the hard redirect to avoid an infinite
-            // reload loop (no valid JWT → 401 → redirect → re-mount → 401…).
-            // When real auth is restored, uncomment the line below:
-            // window.location.href = "/login";
+            // Only redirect if not already on login/signup
+            const path = window.location.pathname;
+            if (path !== "/login" && path !== "/signup") {
+                window.location.href = "/login";
+            }
         }
         return Promise.reject(error);
     }

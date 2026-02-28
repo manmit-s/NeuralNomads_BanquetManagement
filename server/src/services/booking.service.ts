@@ -105,7 +105,7 @@ export class BookingService {
                 where,
                 include: {
                     hall: { select: { id: true, name: true } },
-                    lead: { select: { id: true, customerName: true, customerPhone: true } },
+                    lead: { select: { id: true, customerName: true, customerPhone: true, customerEmail: true, eventType: true, eventDate: true } },
                     branch: { select: { id: true, name: true } },
                 },
                 skip: (pagination.page - 1) * pagination.limit,

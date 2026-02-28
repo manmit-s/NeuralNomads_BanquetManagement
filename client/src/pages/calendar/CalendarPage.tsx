@@ -13,13 +13,15 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import GlassCard from "@/components/ui/GlassCard";
 import { cn } from "@/lib/utils";
 import { DEMO_BOOKINGS } from "@/data/demo";
+import { useApiWithFallback } from "@/lib/useApiWithFallback";
+import { normalizeBookings } from "@/lib/normalizers";
 import type { Booking } from "@/types";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function CalendarPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const bookings: Booking[] = DEMO_BOOKINGS;
+    const { data: bookings } = useApiWithFallback<Booking[]>("/bookings", DEMO_BOOKINGS, { transform: normalizeBookings });
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     const year = currentDate.getFullYear();

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     DollarSign,
@@ -17,6 +17,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { useBranchStore } from "@/stores/branchStore";
+import api from "@/lib/api";
 import {
     DEMO_BRANCH_PERFORMANCE,
     DEMO_INVENTORY,
@@ -27,6 +28,56 @@ import {
 
 export default function DashboardPage() {
     const { selectedBranchId, branches } = useBranchStore();
+    const [apiSummary, setApiSummary] = useState<any>(null);
+    const [isDemo, setIsDemo] = useState(true);
+    const [apiBranchPerf, setApiBranchPerf] = useState<any[]>([]);
+    const [apiBookings, setApiBookings] = useState<any[]>([]);
+    const [apiLeads, setApiLeads] = useState<any[]>([]);
+    const [apiInventory, setApiInventory] = useState<any[]>([]);
+
+    // Fetch all dashboard data from API
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const params: Record<string, string> = {};
+                if (selectedBranchId) params.branchId = selectedBranchId;
+
+                const [dashRes, branchRes, bookingsRes, leadsRes, inventoryRes] = await Promise.allSettled([
+                    api.get("/reports/dashboard", { params, timeout: 5000 }),
+                    api.get("/reports/branch-performance", { params, timeout: 5000 }),
+                    api.get("/bookings", { params: { ...params, limit: "100" }, timeout: 5000 }),
+                    api.get("/leads", { params: { ...params, limit: "100" }, timeout: 5000 }),
+                    api.get("/inventory", { params: { ...params, limit: "100" }, timeout: 5000 }),
+                ]);
+
+                if (!cancelled) {
+                    if (dashRes.status === "fulfilled" && dashRes.value.data?.data) {
+                        setApiSummary(dashRes.value.data.data);
+                        setIsDemo(false);
+                    }
+                    if (branchRes.status === "fulfilled" && branchRes.value.data?.data) {
+                        setApiBranchPerf(branchRes.value.data.data);
+                    }
+                    if (bookingsRes.status === "fulfilled") {
+                        const bd = bookingsRes.value.data?.data?.data || bookingsRes.value.data?.data || [];
+                        setApiBookings(Array.isArray(bd) ? bd : []);
+                    }
+                    if (leadsRes.status === "fulfilled") {
+                        const ld = leadsRes.value.data?.data?.data || leadsRes.value.data?.data || [];
+                        setApiLeads(Array.isArray(ld) ? ld : []);
+                    }
+                    if (inventoryRes.status === "fulfilled") {
+                        const inv = inventoryRes.value.data?.data?.data || inventoryRes.value.data?.data || [];
+                        setApiInventory(Array.isArray(inv) ? inv : []);
+                    }
+                }
+            } catch {
+                if (!cancelled) setIsDemo(true);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [selectedBranchId]);
 
     const selectedBranchName = useMemo(() => {
         if (!selectedBranchId) return null;
@@ -40,33 +91,30 @@ export default function DashboardPage() {
         return map;
     }, []);
 
-    /* ── filtered collections ── */
-    const filteredBookings = useMemo(
-        () =>
-            selectedBranchId
-                ? DEMO_BOOKINGS.filter((b) => hallBranchMap.get(b.hallId) === selectedBranchId)
-                : DEMO_BOOKINGS,
-        [selectedBranchId, hallBranchMap]
-    );
+    /* ── filtered collections — prefer API data, fallback to demo ── */
+    const filteredBookings = useMemo(() => {
+        const source = apiBookings.length > 0 ? apiBookings : DEMO_BOOKINGS;
+        if (!selectedBranchId) return source;
+        return source.filter((b: any) =>
+            b.branchId === selectedBranchId || hallBranchMap.get(b.hallId) === selectedBranchId
+        );
+    }, [selectedBranchId, hallBranchMap, apiBookings]);
 
-    const filteredLeads = useMemo(
-        () =>
-            selectedBranchId
-                ? DEMO_LEADS.filter((l) => l.branchId === selectedBranchId)
-                : DEMO_LEADS,
-        [selectedBranchId]
-    );
+    const filteredLeads = useMemo(() => {
+        const source = apiLeads.length > 0 ? apiLeads : DEMO_LEADS;
+        if (!selectedBranchId) return source;
+        return source.filter((l: any) => l.branchId === selectedBranchId);
+    }, [selectedBranchId, apiLeads]);
 
-    const filteredInventory = useMemo(
-        () =>
-            selectedBranchId
-                ? DEMO_INVENTORY.filter((i) => i.branchId === selectedBranchId)
-                : DEMO_INVENTORY,
-        [selectedBranchId]
-    );
+    const filteredInventory = useMemo(() => {
+        const source = apiInventory.length > 0 ? apiInventory : DEMO_INVENTORY;
+        if (!selectedBranchId) return source;
+        return source.filter((i: any) => i.branchId === selectedBranchId);
+    }, [selectedBranchId, apiInventory]);
 
-    /* ── recompute KPIs from filtered data ── */
+    /* ── recompute KPIs — prefer API data, fallback to demo ── */
     const summary = useMemo(() => {
+        if (!isDemo && apiSummary) return apiSummary;
         const confirmed = filteredBookings.filter((b) => b.status === "CONFIRMED");
         const now = new Date();
         const thisMonthLeads = filteredLeads.filter((l) => {
@@ -82,16 +130,14 @@ export default function DashboardPage() {
                 (b) => b.status !== "CANCELLED" && b.status !== "COMPLETED"
             ).length,
         };
-    }, [filteredBookings, filteredLeads]);
+    }, [filteredBookings, filteredLeads, isDemo, apiSummary]);
 
-    /* ── branch performance table (filter or show all) ── */
-    const branchData = useMemo(
-        () =>
-            selectedBranchId
-                ? DEMO_BRANCH_PERFORMANCE.filter((b) => b.branchId === selectedBranchId)
-                : DEMO_BRANCH_PERFORMANCE,
-        [selectedBranchId]
-    );
+    /* ── branch performance table — prefer API, fallback to demo ── */
+    const branchData = useMemo(() => {
+        const source = apiBranchPerf.length > 0 ? apiBranchPerf : DEMO_BRANCH_PERFORMANCE;
+        if (!selectedBranchId) return source;
+        return source.filter((b: any) => b.branchId === selectedBranchId);
+    }, [selectedBranchId, apiBranchPerf]);
 
     /* ── today's events from filtered bookings ── */
     const todayEvents = useMemo(() => {
@@ -117,7 +163,7 @@ export default function DashboardPage() {
     }, [filteredBookings]);
 
     const lowStockCount = filteredInventory.filter(
-        (i) => i.currentStock < i.minimumStock
+        (i: any) => i.currentStock < (i.minimumStock ?? i.minStockLevel ?? 0)
     ).length;
 
     return (
@@ -215,7 +261,7 @@ export default function DashboardPage() {
                                                     {formatCurrency(branch.totalRevenue)}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-muted">
-                                                    {branch.invoiceCount}
+                                                    {branch.bookingCount ?? branch.invoiceCount ?? 0}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className="inline-flex items-center gap-1 text-xs text-green-400">
