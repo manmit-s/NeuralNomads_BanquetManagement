@@ -7,7 +7,7 @@ export const signUpSchema = z.object({
     password: z.string().min(8, "Password must be at least 8 characters"),
     name: z.string().min(2),
     phone: z.string().optional(),
-    role: z.enum(["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"]),
+    role: z.enum(["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"]).optional(),
     branchId: z.string().optional(),
 });
 
@@ -52,7 +52,7 @@ export const createLeadSchema = z.object({
     source: z.string().optional(),
     notes: z.string().optional(),
     branchId: z.string(),
-    assignedToId: z.string(),
+    assignedToId: z.string().optional(),
 });
 
 export const updateLeadSchema = z.object({

@@ -22,8 +22,11 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
-            window.location.href = "/login";
+            // Only redirect if not already on login/signup
+            const path = window.location.pathname;
+            if (path !== "/login" && path !== "/signup") {
+                window.location.href = "/login";
+            }
         }
         return Promise.reject(error);
     }

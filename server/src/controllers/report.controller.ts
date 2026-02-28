@@ -51,4 +51,11 @@ export class ReportController {
             res.json({ success: true, data });
         } catch (error) { next(error); }
     }
+
+    static async branchPerformance(req: Request, res: Response, next: NextFunction) {
+        try {
+            const data = await ReportService.branchPerformance(req.branchScope);
+            res.json({ success: true, data });
+        } catch (error) { next(error); }
+    }
 }

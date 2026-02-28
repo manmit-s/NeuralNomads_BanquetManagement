@@ -53,9 +53,14 @@ export class LeadService {
     }
 
     static async create(data: any, userId: string) {
+        // Auto-assign to current user if not specified
+        const assignedToId = data.assignedToId && data.assignedToId !== "auto" ? data.assignedToId : userId;
+        const { assignedToId: _removed, ...rest } = data;
+
         const lead = await prisma.lead.create({
             data: {
-                ...data,
+                ...rest,
+                assignedToId,
                 eventDate: data.eventDate ? new Date(data.eventDate) : undefined,
                 createdById: userId,
             },

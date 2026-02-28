@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     Package,
@@ -11,23 +11,18 @@ import PageHeader from "@/components/ui/PageHeader";
 import GlassCard from "@/components/ui/GlassCard";
 import Modal from "@/components/ui/Modal";
 import { cn, formatCurrency } from "@/lib/utils";
-import api from "@/lib/api";
+import { DEMO_INVENTORY, type DemoInventoryItem } from "@/data/demo";
+import { useApiWithFallback } from "@/lib/useApiWithFallback";
+import { normalizeInventory } from "@/lib/normalizers";
+import { useBranchStore } from "@/stores/branchStore";
 import toast from "react-hot-toast";
 
-interface InventoryItem {
-    id: string;
-    name: string;
-    category: string;
-    currentStock: number;
-    minimumStock: number;
-    unit: string;
-    costPerUnit: number;
-    lastRestocked?: string;
-}
-
 export default function InventoryPage() {
-    const [items, setItems] = useState<InventoryItem[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: apiItems } = useApiWithFallback<DemoInventoryItem[]>("/inventory", DEMO_INVENTORY, { transform: normalizeInventory });
+    const [items, setItems] = useState<DemoInventoryItem[]>(apiItems);
+
+    // Sync when API data arrives
+    useEffect(() => { setItems(apiItems); }, [apiItems]);
     const [search, setSearch] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [filter, setFilter] = useState<"all" | "low">("all");
@@ -40,31 +35,6 @@ export default function InventoryPage() {
         unit: "pcs",
         costPerUnit: "",
     });
-
-    const loadItems = useCallback(async () => {
-        try {
-            const { data } = await api.get("/inventory");
-            setItems(data.data || []);
-        } catch {
-            // Fallback demo data for presentation
-            setItems([
-                { id: "1", name: "Dinner Plates", category: "Crockery", currentStock: 450, minimumStock: 200, unit: "pcs", costPerUnit: 120 },
-                { id: "2", name: "Wine Glasses", category: "Glassware", currentStock: 80, minimumStock: 100, unit: "pcs", costPerUnit: 250 },
-                { id: "3", name: "Table Cloths (White)", category: "Linen", currentStock: 35, minimumStock: 50, unit: "pcs", costPerUnit: 800 },
-                { id: "4", name: "Serving Spoons", category: "Cutlery", currentStock: 200, minimumStock: 100, unit: "pcs", costPerUnit: 150 },
-                { id: "5", name: "Round Tables (6ft)", category: "Furniture", currentStock: 25, minimumStock: 20, unit: "pcs", costPerUnit: 5000 },
-                { id: "6", name: "Chafing Dishes", category: "Equipment", currentStock: 12, minimumStock: 15, unit: "pcs", costPerUnit: 3500 },
-                { id: "7", name: "Fairy Lights (100m)", category: "Decoration", currentStock: 8, minimumStock: 10, unit: "rolls", costPerUnit: 1200 },
-                { id: "8", name: "Napkins (Cloth)", category: "Linen", currentStock: 500, minimumStock: 300, unit: "pcs", costPerUnit: 80 },
-            ]);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadItems();
-    }, [loadItems]);
 
     const filtered = items
         .filter((i) => (filter === "low" ? i.currentStock < i.minimumStock : true))
@@ -80,28 +50,22 @@ export default function InventoryPage() {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            await api.post("/inventory", {
-                ...form,
-                currentStock: parseInt(form.currentStock),
-                minimumStock: parseInt(form.minimumStock),
-                costPerUnit: parseFloat(form.costPerUnit),
-            });
-            toast.success("Item added!");
-            setShowModal(false);
-            loadItems();
-        } catch {
-            toast.error("Failed to add item");
-        }
+        const { selectedBranchId } = useBranchStore.getState();
+        const newItem: DemoInventoryItem = {
+            id: `demo-inv-${Date.now()}`,
+            name: form.name,
+            category: form.category,
+            currentStock: parseInt(form.currentStock),
+            minimumStock: parseInt(form.minimumStock),
+            unit: form.unit,
+            costPerUnit: parseFloat(form.costPerUnit),
+            branchId: selectedBranchId || "demo-001",
+        };
+        setItems((prev) => [newItem, ...prev]);
+        toast.success("Item added!");
+        setShowModal(false);
+        setForm({ name: "", category: "Crockery", currentStock: "", minimumStock: "", unit: "pcs", costPerUnit: "" });
     };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin h-8 w-8 border-2 border-gold-500/20 border-t-gold-500 rounded-full" />
-            </div>
-        );
-    }
 
     return (
         <div>

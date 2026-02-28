@@ -1,30 +1,35 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { config } from "../config/index.js";
+import { AuthService } from "../services/auth.service.js";
 import { prisma } from "../lib/prisma.js";
 import { UnauthorizedError } from "../utils/errors.js";
 import type { AuthUser } from "../types/index.js";
 
 /**
- * Authenticate requests using a Supabase JWT.
+ * Authenticate requests using our self-signed JWT.
  * Extracts the token from the Authorization header, verifies it,
- * then loads the full user profile from our database.
+ * and loads the corresponding user from the database.
  */
 export async function authenticate(req: Request, _res: Response, next: NextFunction) {
     try {
         const authHeader = req.headers.authorization;
-        if (!authHeader?.startsWith("Bearer ")) {
+
+        if (!authHeader?.startsWith("Bearer ") || !authHeader.split(" ")[1]) {
             throw new UnauthorizedError("Missing or malformed authorization header");
         }
 
         const token = authHeader.split(" ")[1];
 
-        // Verify the Supabase-issued JWT
-        const decoded = jwt.verify(token, config.jwt.secret) as { sub: string; email: string };
+        // Verify our own JWT
+        let decoded: { sub: string; email: string; role: string };
+        try {
+            decoded = AuthService.verifyToken(token);
+        } catch {
+            throw new UnauthorizedError("Invalid or expired token");
+        }
 
-        // Load our application user by Supabase Auth UID
+        // Load app user by ID (sub = user.id)
         const user = await prisma.user.findUnique({
-            where: { authId: decoded.sub },
+            where: { id: decoded.sub },
             select: {
                 id: true,
                 authId: true,
@@ -46,7 +51,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
         if (error instanceof UnauthorizedError) {
             next(error);
         } else {
-            next(new UnauthorizedError("Invalid or expired token"));
+            next(new UnauthorizedError("Authentication failed"));
         }
     }
 }
