@@ -52,7 +52,7 @@ export const createLeadSchema = z.object({
     source: z.string().optional(),
     notes: z.string().optional(),
     branchId: z.string(),
-    assignedToId: z.string(),
+    assignedToId: z.string().optional(),
 });
 
 export const updateLeadSchema = z.object({

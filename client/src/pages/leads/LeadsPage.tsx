@@ -15,6 +15,8 @@ import Modal from "@/components/ui/Modal";
 import { cn, formatDate, EVENT_TYPE_COLORS, LEAD_STATUS_LABELS } from "@/lib/utils";
 import { DEMO_LEADS } from "@/data/demo";
 import { useApiWithFallback } from "@/lib/useApiWithFallback";
+import api from "@/lib/api";
+import { useBranchStore } from "@/stores/branchStore";
 import type { Lead, LeadStatus } from "@/types";
 import toast from "react-hot-toast";
 
@@ -85,21 +87,46 @@ export default function LeadsPage() {
 
     const handleCreateLead = async (e: React.FormEvent) => {
         e.preventDefault();
-        const newLead: Lead = {
-            id: `demo-new-${Date.now()}`,
-            customerName: form.customerName,
-            customerPhone: form.customerPhone,
-            customerEmail: form.customerEmail || undefined,
-            eventType: form.eventType,
-            eventDate: form.eventDate || undefined,
-            guestCount: form.guestCount ? parseInt(form.guestCount) : undefined,
-            notes: form.notes || undefined,
-            status: "CALL" as LeadStatus,
-            branchId: form.branchId || "demo-001",
-            createdAt: new Date().toISOString(),
-        };
-        setLeads((prev) => [newLead, ...prev]);
-        toast.success("Lead created!");
+        try {
+            const payload: Record<string, any> = {
+                customerName: form.customerName,
+                customerPhone: form.customerPhone,
+                eventType: form.eventType || "Wedding",
+                branchId: form.branchId || useBranchStore.getState().selectedBranchId || useBranchStore.getState().branches[0]?.id || "",
+                assignedToId: "auto",
+            };
+            if (form.customerEmail) payload.customerEmail = form.customerEmail;
+            if (form.eventDate) payload.eventDate = new Date(form.eventDate).toISOString();
+            if (form.guestCount) payload.guestCount = parseInt(form.guestCount);
+            if (form.notes) payload.notes = form.notes;
+
+            const res = await api.post("/leads", payload, { timeout: 10000 });
+            const created = res.data?.data;
+            if (created?.id) {
+                setLeads(prev => [created, ...prev]);
+                toast.success(`Lead "${created.customerName}" created!`);
+            } else {
+                throw new Error("No data returned");
+            }
+        } catch (err: any) {
+            // Fallback: add locally
+            const newLead: Lead = {
+                id: `demo-new-${Date.now()}`,
+                customerName: form.customerName,
+                customerPhone: form.customerPhone,
+                customerEmail: form.customerEmail || undefined,
+                eventType: form.eventType,
+                eventDate: form.eventDate || undefined,
+                guestCount: form.guestCount ? parseInt(form.guestCount) : undefined,
+                notes: form.notes || undefined,
+                status: "CALL" as LeadStatus,
+                branchId: form.branchId || "demo-001",
+                createdAt: new Date().toISOString(),
+            };
+            setLeads(prev => [newLead, ...prev]);
+            const msg = err.response?.data?.message || err.message;
+            toast.success("Lead created locally (API: " + msg + ")");
+        }
         setShowModal(false);
         setForm({ customerName: "", customerPhone: "", customerEmail: "", eventType: "Wedding", eventDate: "", guestCount: "", notes: "", branchId: "" });
     };

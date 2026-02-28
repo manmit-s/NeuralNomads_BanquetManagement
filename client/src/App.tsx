@@ -10,6 +10,7 @@ import LoginPage from "@/pages/auth/LoginPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import LeadsPage from "@/pages/leads/LeadsPage";
 import BookingsPage from "@/pages/bookings/BookingsPage";
+import NewBookingPage from "@/pages/bookings/NewBookingPage";
 import EventDetailsPage from "@/pages/events/EventDetailsPage";
 import CalendarPage from "@/pages/calendar/CalendarPage";
 import InventoryPage from "@/pages/inventory/InventoryPage";
@@ -52,6 +53,7 @@ function AppRoutes() {
                 <Route path="/branches" element={<BranchesPage />} />
                 <Route path="/leads" element={<LeadsPage />} />
                 <Route path="/bookings" element={<BookingsPage />} />
+                <Route path="/bookings/new" element={<NewBookingPage />} />
                 <Route path="/events/:id" element={<EventDetailsPage />} />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
