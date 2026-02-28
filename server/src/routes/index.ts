@@ -7,6 +7,7 @@ import eventRoutes from "./event.routes.js";
 import inventoryRoutes from "./inventory.routes.js";
 import billingRoutes from "./billing.routes.js";
 import reportRoutes from "./report.routes.js";
+import aiRevenueRoutes from "./aiRevenue.routes.js";
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use("/events", eventRoutes);
 router.use("/inventory", inventoryRoutes);
 router.use("/billing", billingRoutes);
 router.use("/reports", reportRoutes);
+router.use("/ai", aiRevenueRoutes);
 
 // Health check
 router.get("/health", (_req, res) => {

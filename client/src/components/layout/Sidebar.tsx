@@ -10,6 +10,7 @@ import {
     Settings,
     LogOut,
     Sparkles,
+    BrainCircuit,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -21,6 +22,7 @@ const navItems = [
     { label: "Calendar", icon: Calendar, path: "/calendar", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
     { label: "Inventory", icon: Package, path: "/inventory", roles: ["OWNER", "BRANCH_MANAGER", "OPERATIONS"] },
     { label: "Reports", icon: BarChart3, path: "/reports", roles: ["OWNER", "BRANCH_MANAGER"] },
+    { label: "AI Revenue", icon: BrainCircuit, path: "/ai-revenue", roles: ["OWNER", "BRANCH_MANAGER"] },
     { label: "Settings", icon: Settings, path: "/settings", roles: ["OWNER", "BRANCH_MANAGER"] },
 ];
 
