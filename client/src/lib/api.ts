@@ -23,7 +23,10 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             localStorage.removeItem("access_token");
             localStorage.removeItem("refresh_token");
-            window.location.href = "/login";
+            // In demo mode we skip the hard redirect to avoid an infinite
+            // reload loop (no valid JWT → 401 → redirect → re-mount → 401…).
+            // When real auth is restored, uncomment the line below:
+            // window.location.href = "/login";
         }
         return Promise.reject(error);
     }
