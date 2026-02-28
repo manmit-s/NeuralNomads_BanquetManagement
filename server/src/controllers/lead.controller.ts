@@ -17,7 +17,7 @@ export class LeadController {
 
     static async getById(req: Request, res: Response, next: NextFunction) {
         try {
-            const lead = await LeadService.findById(req.params.id, req.branchScope);
+            const lead = await LeadService.findById(req.params.id as string, req.branchScope);
             res.json({ success: true, data: lead });
         } catch (error) { next(error); }
     }
@@ -31,7 +31,7 @@ export class LeadController {
 
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const lead = await LeadService.update(req.params.id, req.body, req.user!.id, req.branchScope);
+            const lead = await LeadService.update(req.params.id as string, req.body, req.user!.id, req.branchScope);
             res.json({ success: true, data: lead });
         } catch (error) { next(error); }
     }

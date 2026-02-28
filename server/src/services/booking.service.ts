@@ -2,7 +2,7 @@ import { prisma } from "../lib/prisma.js";
 import { ConflictError, NotFoundError } from "../utils/errors.js";
 import { generateRefNumber } from "../utils/helpers.js";
 import type { PaginationParams } from "../types/index.js";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 export class BookingService {
     /**
@@ -41,7 +41,7 @@ export class BookingService {
         const startDate = new Date(data.startDate);
         const endDate = new Date(data.endDate);
 
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
             // ── Step 1: Lock & check for conflicts ──
             const conflicts = await tx.$queryRaw<{ id: string }[]>`
         SELECT id FROM bookings
@@ -89,7 +89,7 @@ export class BookingService {
 
             return booking;
         }, {
-            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            isolationLevel: "Serializable" as const,
             timeout: 10000,
         });
     }

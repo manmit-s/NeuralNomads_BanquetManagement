@@ -12,7 +12,7 @@ export class BillingController {
 
     static async getInvoice(req: Request, res: Response, next: NextFunction) {
         try {
-            const invoice = await BillingService.findInvoice(req.params.id, req.branchScope);
+            const invoice = await BillingService.findInvoice(req.params.id as string, req.branchScope);
             res.json({ success: true, data: invoice });
         } catch (error) { next(error); }
     }

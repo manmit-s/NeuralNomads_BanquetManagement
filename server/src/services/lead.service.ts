@@ -121,6 +121,6 @@ export class LeadService {
             _count: { _all: true },
         });
 
-        return counts.map((c) => ({ status: c.status, count: c._count._all }));
+        return counts.map((c: { status: string; _count: { _all: number } }) => ({ status: c.status, count: c._count._all }));
     }
 }

@@ -2,7 +2,7 @@
 // Seed script — creates a demo owner, branch, hall, and sample data
 // ──────────────────────────────────────────────────────────────
 
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -33,7 +33,7 @@ async function main() {
             email: "owner@grandbanquet.com",
             name: "Raj Patel",
             phone: "+91-9876543210",
-            role: Role.OWNER,
+            role: "OWNER",
             branchId: null, // Owners see all branches
         },
     });
@@ -48,7 +48,7 @@ async function main() {
             email: "manager@grandbanquet.com",
             name: "Priya Sharma",
             phone: "+91-9876543211",
-            role: Role.BRANCH_MANAGER,
+            role: "BRANCH_MANAGER",
             branchId: branch.id,
         },
     });

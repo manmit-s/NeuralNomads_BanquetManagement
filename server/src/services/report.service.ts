@@ -6,7 +6,7 @@ export class ReportService {
      * Branch-wise revenue summary for a date range.
      */
     static async branchRevenue(from: Date, to: Date, branchScope?: string) {
-        const branchFilter = branchScope ? Prisma.sql`AND i."branchId" = ${branchScope}` : Prisma.empty;
+        const branchFilter = branchScope ? Prisma.sql`AND i."branchId" = ${branchScope}` : Prisma.sql``;
 
         return prisma.$queryRaw`
       SELECT
@@ -64,7 +64,7 @@ export class ReportService {
         const totalDays = Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
         const results = await Promise.all(
-            halls.map(async (hall) => {
+            halls.map(async (hall: { id: string; name: string; branchId: string }) => {
                 const bookedDays = await prisma.booking.count({
                     where: {
                         hallId: hall.id,
@@ -101,8 +101,8 @@ export class ReportService {
             select: { totalAmount: true, paidAmount: true, status: true, branchId: true },
         });
 
-        const totalOutstanding = invoices.reduce((sum, inv) => sum + (inv.totalAmount - inv.paidAmount), 0);
-        const overdueCount = invoices.filter((i) => i.status === "OVERDUE").length;
+        const totalOutstanding = invoices.reduce((sum: number, inv: { totalAmount: number; paidAmount: number }) => sum + (inv.totalAmount - inv.paidAmount), 0);
+        const overdueCount = invoices.filter((i: { status: string }) => i.status === "OVERDUE").length;
 
         return {
             totalOutstanding,

@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { AppError, NotFoundError } from "../utils/errors.js";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 export class InventoryService {
     // ── CRUD ─────────────────────────────────────────────
@@ -37,7 +37,7 @@ export class InventoryService {
     // ── Manual stock adjustment (purchase, return, correction) ──
 
     static async adjustStock(itemId: string, type: "PURCHASE" | "ADJUSTMENT" | "RETURN", quantity: number, notes?: string) {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
             const item = await tx.inventoryItem.findUnique({ where: { id: itemId } });
             if (!item) throw new NotFoundError("Inventory item");
 
@@ -74,7 +74,7 @@ export class InventoryService {
       FROM inventory_items
       WHERE "isActive" = true
         AND "currentStock" <= "minStockLevel"
-        ${branchScope ? Prisma.sql`AND "branchId" = ${branchScope}` : Prisma.empty}
+        ${branchScope ? Prisma.sql`AND "branchId" = ${branchScope}` : Prisma.sql``}
       ORDER BY ("currentStock" - "minStockLevel") ASC
     `;
     }
@@ -100,7 +100,7 @@ export class InventoryService {
         menuItems: { menuItemId: string; quantity: number }[], // quantity = servings
         guestCount: number
     ) {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
             // ── 1. Calculate required quantities ──
             const requirements: Map<string, { name: string; required: number; unit: string }> = new Map();
 
@@ -199,7 +199,7 @@ export class InventoryService {
 
             return { deducted, warnings };
         }, {
-            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            isolationLevel: "Serializable" as const,
             timeout: 15000,
         });
     }

@@ -75,7 +75,7 @@ export class BillingService {
         referenceNo?: string;
         notes?: string;
     }, userId: string) {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: any) => {
             const invoice = await tx.invoice.findUnique({
                 where: { id: data.invoiceId },
             });

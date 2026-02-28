@@ -11,7 +11,7 @@ export class InventoryController {
 
     static async getById(req: Request, res: Response, next: NextFunction) {
         try {
-            const item = await InventoryService.findById(req.params.id);
+            const item = await InventoryService.findById(req.params.id as string);
             res.json({ success: true, data: item });
         } catch (error) { next(error); }
     }
@@ -25,7 +25,7 @@ export class InventoryController {
 
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const item = await InventoryService.update(req.params.id, req.body);
+            const item = await InventoryService.update(req.params.id as string, req.body);
             res.json({ success: true, data: item });
         } catch (error) { next(error); }
     }
@@ -33,7 +33,7 @@ export class InventoryController {
     static async adjustStock(req: Request, res: Response, next: NextFunction) {
         try {
             const item = await InventoryService.adjustStock(
-                req.params.id,
+                req.params.id as string,
                 req.body.type,
                 req.body.quantity,
                 req.body.notes

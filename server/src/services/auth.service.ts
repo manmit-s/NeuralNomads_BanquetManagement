@@ -2,7 +2,6 @@ import { prisma } from "../lib/prisma.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import type { AuthUser } from "../types/index.js";
 import { AppError, UnauthorizedError } from "../utils/errors.js";
-import { Role } from "@prisma/client";
 
 export class AuthService {
     /**
@@ -13,7 +12,7 @@ export class AuthService {
         password: string;
         name: string;
         phone?: string;
-        role: Role;
+        role: "OWNER" | "BRANCH_MANAGER" | "SALES" | "OPERATIONS";
         branchId?: string;
     }) {
         // 1. Create user in Supabase Auth

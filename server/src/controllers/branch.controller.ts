@@ -11,7 +11,7 @@ export class BranchController {
 
     static async getById(req: Request, res: Response, next: NextFunction) {
         try {
-            const branch = await BranchService.findById(req.params.id);
+            const branch = await BranchService.findById(req.params.id as string);
             res.json({ success: true, data: branch });
         } catch (error) { next(error); }
     }
@@ -25,14 +25,14 @@ export class BranchController {
 
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const branch = await BranchService.update(req.params.id, req.body);
+            const branch = await BranchService.update(req.params.id as string, req.body);
             res.json({ success: true, data: branch });
         } catch (error) { next(error); }
     }
 
     static async deactivate(req: Request, res: Response, next: NextFunction) {
         try {
-            await BranchService.deactivate(req.params.id);
+            await BranchService.deactivate(req.params.id as string);
             res.json({ success: true, message: "Branch deactivated" });
         } catch (error) { next(error); }
     }

@@ -17,7 +17,7 @@ export class BookingController {
 
     static async getById(req: Request, res: Response, next: NextFunction) {
         try {
-            const booking = await BookingService.findById(req.params.id, req.branchScope);
+            const booking = await BookingService.findById(req.params.id as string, req.branchScope);
             res.json({ success: true, data: booking });
         } catch (error) { next(error); }
     }
@@ -31,7 +31,7 @@ export class BookingController {
 
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const booking = await BookingService.update(req.params.id, req.body, req.branchScope);
+            const booking = await BookingService.update(req.params.id as string, req.body, req.branchScope);
             res.json({ success: true, data: booking });
         } catch (error) { next(error); }
     }
