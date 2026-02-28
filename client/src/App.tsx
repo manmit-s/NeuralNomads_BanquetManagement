@@ -7,6 +7,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 // Pages
 import LoginPage from "@/pages/auth/LoginPage";
+import SignupPage from "@/pages/auth/SignupPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import LeadsPage from "@/pages/leads/LeadsPage";
 import BookingsPage from "@/pages/bookings/BookingsPage";
@@ -40,6 +41,7 @@ function AppRoutes() {
         <Routes>
             {/* Public */}
             <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+            <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignupPage />} />
 
             {/* Protected — Dashboard Layout */}
             <Route
