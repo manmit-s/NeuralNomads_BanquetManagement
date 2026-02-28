@@ -1,79 +1,108 @@
-import { NavLink } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { NavLink, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
     LayoutDashboard,
     Users,
     CalendarDays,
-    ClipboardList,
+    Calendar,
     Package,
-    Receipt,
     BarChart3,
-    Building2,
-    UserCircle,
-    UtensilsCrossed,
+    Settings,
+    LogOut,
+    Sparkles,
 } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 
-interface NavItem {
-    label: string;
-    to: string;
-    icon: React.ReactNode;
-    roles: string[];
-}
-
-const navItems: NavItem[] = [
-    { label: "Dashboard", to: "/", icon: <LayoutDashboard size={20} />, roles: ["OWNER", "BRANCH_MANAGER"] },
-    { label: "Branches", to: "/branches", icon: <Building2 size={20} />, roles: ["OWNER"] },
-    { label: "Leads", to: "/leads", icon: <Users size={20} />, roles: ["OWNER", "BRANCH_MANAGER", "SALES"] },
-    { label: "Bookings", to: "/bookings", icon: <CalendarDays size={20} />, roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
-    { label: "Events", to: "/events", icon: <UtensilsCrossed size={20} />, roles: ["OWNER", "BRANCH_MANAGER", "OPERATIONS"] },
-    { label: "Calendar", to: "/calendar", icon: <CalendarDays size={20} />, roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
-    { label: "Inventory", to: "/inventory", icon: <Package size={20} />, roles: ["OWNER", "BRANCH_MANAGER", "OPERATIONS"] },
-    { label: "Billing", to: "/billing", icon: <Receipt size={20} />, roles: ["OWNER", "BRANCH_MANAGER", "SALES"] },
-    { label: "Reports", to: "/reports", icon: <BarChart3 size={20} />, roles: ["OWNER", "BRANCH_MANAGER"] },
+const navItems = [
+    { label: "Dashboard", icon: LayoutDashboard, path: "/", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
+    { label: "Leads Pipeline", icon: Users, path: "/leads", roles: ["OWNER", "BRANCH_MANAGER", "SALES"] },
+    { label: "Bookings", icon: CalendarDays, path: "/bookings", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
+    { label: "Calendar", icon: Calendar, path: "/calendar", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
+    { label: "Inventory", icon: Package, path: "/inventory", roles: ["OWNER", "BRANCH_MANAGER", "OPERATIONS"] },
+    { label: "Reports", icon: BarChart3, path: "/reports", roles: ["OWNER", "BRANCH_MANAGER"] },
+    { label: "Settings", icon: Settings, path: "/settings", roles: ["OWNER", "BRANCH_MANAGER"] },
 ];
 
 export default function Sidebar() {
-    const { user } = useAuth();
+    const location = useLocation();
+    const { user, signOut } = useAuthStore();
+    const role = user?.role || "SALES";
 
-    const visibleItems = navItems.filter((item) =>
-        user ? item.roles.includes(user.role) : false
-    );
+    const filtered = navItems.filter((item) => item.roles.includes(role));
 
     return (
-        <aside className="fixed left-0 top-0 z-30 flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
+        <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-surface border-r border-border">
             {/* Logo */}
-            <div className="flex h-16 items-center gap-2 border-b border-gray-200 px-6">
-                <ClipboardList className="text-primary-600" size={28} />
-                <span className="text-lg font-bold text-gray-900">BanquetPro</span>
+            <div className="flex items-center gap-3 px-6 py-6 border-b border-border">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold-gradient shadow-glow-sm">
+                    <Sparkles className="h-5 w-5 text-black" />
+                </div>
+                <div>
+                    <h1 className="font-display text-xl font-bold tracking-tight text-white">
+                        EVENTORA
+                    </h1>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-muted">
+                        Banquet Management
+                    </p>
+                </div>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-                {visibleItems.map((item) => (
-                    <NavLink
-                        key={item.to}
-                        to={item.to}
-                        end={item.to === "/"}
-                        className={({ isActive }) =>
-                            cn("sidebar-link", isActive && "sidebar-link-active")
-                        }
-                    >
-                        {item.icon}
-                        {item.label}
-                    </NavLink>
-                ))}
+            <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+                {filtered.map((item) => {
+                    const isActive =
+                        item.path === "/"
+                            ? location.pathname === "/"
+                            : location.pathname.startsWith(item.path);
+
+                    return (
+                        <NavLink key={item.path} to={item.path} className="block relative">
+                            {isActive && (
+                                <motion.div
+                                    layoutId="sidebar-active"
+                                    className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full bg-gold-500"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                                />
+                            )}
+                            <div
+                                className={cn(
+                                    "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200",
+                                    isActive
+                                        ? "bg-gold-500/10 text-gold-400"
+                                        : "text-muted hover:text-white hover:bg-white/5"
+                                )}
+                            >
+                                <item.icon className="h-[18px] w-[18px]" />
+                                <span>{item.label}</span>
+                            </div>
+                        </NavLink>
+                    );
+                })}
             </nav>
 
-            {/* User card */}
-            <div className="border-t border-gray-200 p-4">
-                <div className="flex items-center gap-3">
-                    <UserCircle size={36} className="text-gray-400" />
-                    <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-gray-900">{user?.name}</p>
-                        <p className="truncate text-xs text-gray-500">{user?.role?.replace("_", " ")}</p>
+            {/* User section */}
+            <div className="border-t border-border p-4">
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-500/20 text-gold-400 text-sm font-semibold">
+                        {user?.name?.charAt(0) || "U"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">
+                            {user?.name || "User"}
+                        </p>
+                        <p className="text-xs text-muted truncate">
+                            {role.replace("_", " ")}
+                        </p>
                     </div>
                 </div>
+                <button
+                    onClick={signOut}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
+                >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                </button>
             </div>
         </aside>
     );

@@ -1,74 +1,239 @@
-import { useEffect, useState } from "react";
-import api from "../../lib/api";
-import type { Booking } from "../../types";
-import PageHeader from "../../components/ui/PageHeader";
-import StatusBadge from "../../components/ui/StatusBadge";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import EmptyState from "../../components/ui/EmptyState";
-import { formatDate, formatCurrency } from "../../lib/utils";
-import { Plus } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { motion } from "framer-motion";
+import {
+    BookOpen,
+    Plus,
+    Search,
+    Calendar,
+    Users,
+    IndianRupee,
+    Eye,
+    ChevronLeft,
+    ChevronRight,
+} from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
+import StatusBadge from "@/components/ui/StatusBadge";
+import GlassCard from "@/components/ui/GlassCard";
+import EmptyState from "@/components/ui/EmptyState";
+import { cn, formatCurrency } from "@/lib/utils";
+import api from "@/lib/api";
+import type { Booking } from "@/types";
+import { useNavigate } from "react-router-dom";
 
 export default function BookingsPage() {
+    const navigate = useNavigate();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string>("ALL");
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
+    const limit = 15;
+
+    const loadBookings = useCallback(async () => {
+        try {
+            setLoading(true);
+            const params: Record<string, unknown> = { page, limit };
+            if (statusFilter !== "ALL") params.status = statusFilter;
+            if (search) params.search = search;
+            const { data } = await api.get("/bookings", { params });
+            setBookings(data.data || []);
+            setTotal(data.pagination?.total || 0);
+        } catch {
+            // fallback
+        } finally {
+            setLoading(false);
+        }
+    }, [page, statusFilter, search]);
 
     useEffect(() => {
-        async function load() {
-            try {
-                const { data } = await api.get("/bookings", { params: { limit: 50 } });
-                setBookings(data.data);
-            } catch {
-                //
-            } finally {
-                setLoading(false);
-            }
-        }
-        load();
-    }, []);
+        loadBookings();
+    }, [loadBookings]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    const statuses = ["ALL", "CONFIRMED", "TENTATIVE", "COMPLETED", "CANCELLED"];
 
     return (
         <div>
             <PageHeader
                 title="Bookings"
-                subtitle="Manage hall reservations"
-                action={<button className="btn-primary flex items-center gap-2"><Plus size={18} /> New Booking</button>}
+                subtitle="Manage all event bookings"
+                icon={BookOpen}
+                action={
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
+                            <input
+                                type="text"
+                                placeholder="Search bookings..."
+                                value={search}
+                                onChange={(e) => {
+                                    setSearch(e.target.value);
+                                    setPage(1);
+                                }}
+                                className="input-dark pl-9 w-60"
+                            />
+                        </div>
+                        <button
+                            onClick={() => navigate("/bookings/new")}
+                            className="btn-gold"
+                        >
+                            <Plus className="h-4 w-4" />
+                            New Booking
+                        </button>
+                    </div>
+                }
             />
 
+            {/* Status Tabs */}
+            <div className="flex gap-1 mb-6 bg-surface/50 p-1 rounded-xl w-fit">
+                {statuses.map((s) => (
+                    <button
+                        key={s}
+                        onClick={() => {
+                            setStatusFilter(s);
+                            setPage(1);
+                        }}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium rounded-lg transition-all",
+                            statusFilter === s
+                                ? "bg-gold-500/10 text-gold-400 border border-gold-500/20"
+                                : "text-muted hover:text-white"
+                        )}
+                    >
+                        {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+                    </button>
+                ))}
+            </div>
+
             {loading ? (
-                <LoadingSpinner />
-            ) : bookings.length === 0 ? (
-                <EmptyState title="No bookings yet" description="Bookings are created from confirmed leads" />
-            ) : (
-                <div className="card overflow-hidden p-0">
-                    <table className="w-full">
-                        <thead className="border-b border-gray-200 bg-gray-50">
-                            <tr>
-                                <th className="table-header">Booking #</th>
-                                <th className="table-header">Customer</th>
-                                <th className="table-header">Hall</th>
-                                <th className="table-header">Date</th>
-                                <th className="table-header">Guests</th>
-                                <th className="table-header">Total</th>
-                                <th className="table-header">Balance</th>
-                                <th className="table-header">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {bookings.map((b) => (
-                                <tr key={b.id} className="hover:bg-gray-50 cursor-pointer">
-                                    <td className="table-cell font-mono text-sm font-medium">{b.bookingNumber}</td>
-                                    <td className="table-cell">{b.lead?.customerName || "—"}</td>
-                                    <td className="table-cell">{b.hall?.name || "—"}</td>
-                                    <td className="table-cell">{formatDate(b.startDate)}</td>
-                                    <td className="table-cell">{b.guestCount}</td>
-                                    <td className="table-cell">{formatCurrency(b.totalAmount)}</td>
-                                    <td className="table-cell font-medium text-red-600">{formatCurrency(b.balanceAmount)}</td>
-                                    <td className="table-cell"><StatusBadge status={b.status} /></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin h-8 w-8 border-2 border-gold-500/20 border-t-gold-500 rounded-full" />
                 </div>
+            ) : bookings.length === 0 ? (
+                <EmptyState
+                    icon={BookOpen}
+                    title="No bookings found"
+                    description="Create your first booking to get started"
+                />
+            ) : (
+                <>
+                    <div className="space-y-3">
+                        {bookings.map((booking, i) => (
+                            <motion.div
+                                key={booking.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.03 }}
+                            >
+                                <GlassCard hover>
+                                    <div className="flex items-center justify-between p-5">
+                                        <div className="flex items-center gap-5">
+                                            {/* Date Block */}
+                                            <div className="flex flex-col items-center justify-center h-14 w-14 rounded-xl bg-gold-500/10 border border-gold-500/20">
+                                                <Calendar className="h-4 w-4 text-gold-400 mb-0.5" />
+                                                <span className="text-[10px] text-gold-400 font-medium">
+                                                    {booking.eventDate
+                                                        ? new Date(booking.eventDate).toLocaleDateString("en", { month: "short", day: "numeric" })
+                                                        : "TBD"}
+                                                </span>
+                                            </div>
+
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <h3 className="text-sm font-semibold text-white">
+                                                        {booking.customerName}
+                                                    </h3>
+                                                    <StatusBadge status={booking.status} />
+                                                </div>
+                                                <div className="flex items-center gap-4 text-xs text-muted">
+                                                    <span className="flex items-center gap-1">
+                                                        <BookOpen className="h-3 w-3" />
+                                                        {booking.eventType}
+                                                    </span>
+                                                    {booking.guestCount && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Users className="h-3 w-3" />
+                                                            {booking.guestCount} guests
+                                                        </span>
+                                                    )}
+                                                    {booking.hall && (
+                                                        <span className="text-gold-400/60">
+                                                            {booking.hall.name}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-6">
+                                            {booking.totalAmount && (
+                                                <div className="text-right">
+                                                    <p className="text-sm font-semibold text-white flex items-center gap-1">
+                                                        <IndianRupee className="h-3.5 w-3.5" />
+                                                        {formatCurrency(booking.totalAmount)}
+                                                    </p>
+                                                    <p className="text-xs text-muted">
+                                                        Paid: {formatCurrency(booking.paidAmount || 0)}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            <button
+                                                onClick={() => navigate(`/events/${booking.id}`)}
+                                                className="btn-ghost p-2"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </GlassCard>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between mt-6">
+                            <p className="text-sm text-muted">
+                                Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="btn-ghost p-2 disabled:opacity-30"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    const p = i + 1;
+                                    return (
+                                        <button
+                                            key={p}
+                                            onClick={() => setPage(p)}
+                                            className={cn(
+                                                "h-8 w-8 rounded-lg text-sm font-medium transition-all",
+                                                page === p
+                                                    ? "bg-gold-500 text-black"
+                                                    : "text-muted hover:text-white hover:bg-surface"
+                                            )}
+                                        >
+                                            {p}
+                                        </button>
+                                    );
+                                })}
+                                <button
+                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                    className="btn-ghost p-2 disabled:opacity-30"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

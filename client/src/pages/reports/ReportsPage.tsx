@@ -1,128 +1,282 @@
-import { useEffect, useState } from "react";
-import api from "../../lib/api";
-import PageHeader from "../../components/ui/PageHeader";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import { formatCurrency } from "../../lib/utils";
+import { useState } from "react";
+import {
+    BarChart3,
+    TrendingUp,
+    IndianRupee,
+    Users,
+    CalendarDays,
+    Download,
+} from "lucide-react";
+import {
+    LineChart,
+    Line,
+    BarChart,
+    Bar,
+    PieChart,
+    Pie,
+    Cell,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    AreaChart,
+    Area,
+} from "recharts";
+import PageHeader from "@/components/ui/PageHeader";
+import GlassCard from "@/components/ui/GlassCard";
+import { cn, formatCurrency } from "@/lib/utils";
 
-interface RevenueData {
-    branchId: string;
-    branchName: string;
-    totalRevenue: number;
-    invoiceCount: number;
-}
+// Chart palette — dark gold theme
+const GOLD = "#D4AF37";
 
-interface ConversionData {
-    total: number;
-    converted: number;
-    conversionRate: number;
-}
+// Demo data for presentation
+const revenueData = [
+    { month: "Jan", revenue: 850000, bookings: 12 },
+    { month: "Feb", revenue: 920000, bookings: 14 },
+    { month: "Mar", revenue: 780000, bookings: 11 },
+    { month: "Apr", revenue: 1100000, bookings: 16 },
+    { month: "May", revenue: 1350000, bookings: 19 },
+    { month: "Jun", revenue: 1200000, bookings: 17 },
+    { month: "Jul", revenue: 980000, bookings: 13 },
+    { month: "Aug", revenue: 1450000, bookings: 21 },
+    { month: "Sep", revenue: 1300000, bookings: 18 },
+    { month: "Oct", revenue: 1680000, bookings: 24 },
+    { month: "Nov", revenue: 2100000, bookings: 28 },
+    { month: "Dec", revenue: 1900000, bookings: 25 },
+];
 
-interface OutstandingData {
-    totalOutstanding: number;
-    invoiceCount: number;
-    overdueCount: number;
-}
+const eventTypeData = [
+    { name: "Wedding", value: 42, color: "#D4AF37" },
+    { name: "Corporate", value: 25, color: "#8B6914" },
+    { name: "Birthday", value: 15, color: "#FFD700" },
+    { name: "Reception", value: 10, color: "#C5A028" },
+    { name: "Other", value: 8, color: "#E8C547" },
+];
+
+const branchData = [
+    { branch: "Main Hall", revenue: 5200000, bookings: 85 },
+    { branch: "Garden", revenue: 3800000, bookings: 62 },
+    { branch: "Terrace", revenue: 2100000, bookings: 45 },
+    { branch: "Banquet A", revenue: 1500000, bookings: 30 },
+];
+
+const occupancyData = [
+    { month: "Jan", rate: 72 },
+    { month: "Feb", rate: 78 },
+    { month: "Mar", rate: 65 },
+    { month: "Apr", rate: 82 },
+    { month: "May", rate: 88 },
+    { month: "Jun", rate: 85 },
+    { month: "Jul", rate: 70 },
+    { month: "Aug", rate: 92 },
+    { month: "Sep", rate: 86 },
+    { month: "Oct", rate: 95 },
+    { month: "Nov", rate: 98 },
+    { month: "Dec", rate: 93 },
+];
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="bg-card border border-border rounded-xl px-4 py-3 shadow-card">
+            <p className="text-xs font-medium text-white mb-1">{label}</p>
+            {payload.map((p: any, i: number) => (
+                <p key={i} className="text-xs text-muted">
+                    {p.name}: <span className="text-white font-medium">
+                        {typeof p.value === "number" && p.value > 1000
+                            ? formatCurrency(p.value)
+                            : p.value}
+                    </span>
+                </p>
+            ))}
+        </div>
+    );
+};
 
 export default function ReportsPage() {
-    const [revenue, setRevenue] = useState<RevenueData[]>([]);
-    const [conversion, setConversion] = useState<ConversionData | null>(null);
-    const [outstanding, setOutstanding] = useState<OutstandingData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [period, setPeriod] = useState<"month" | "quarter" | "year">("year");
 
-    useEffect(() => {
-        async function load() {
-            const now = new Date();
-            const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-            const to = now.toISOString();
-
-            try {
-                const [revRes, convRes, outRes] = await Promise.all([
-                    api.get("/reports/revenue", { params: { from, to } }),
-                    api.get("/reports/conversion", { params: { from, to } }),
-                    api.get("/reports/outstanding"),
-                ]);
-                setRevenue(revRes.data.data);
-                setConversion(convRes.data.data);
-                setOutstanding(outRes.data.data);
-            } catch {
-                //
-            } finally {
-                setLoading(false);
-            }
-        }
-        load();
-    }, []);
-
-    if (loading) return <LoadingSpinner />;
+    const totalRevenue = revenueData.reduce((s, d) => s + d.revenue, 0);
+    const totalBookings = revenueData.reduce((s, d) => s + d.bookings, 0);
+    const avgOccupancy = Math.round(
+        occupancyData.reduce((s, d) => s + d.rate, 0) / occupancyData.length
+    );
 
     return (
         <div>
-            <PageHeader title="Reports" subtitle="Analytics and business insights" />
+            <PageHeader
+                title="Reports"
+                subtitle="Analytics and performance insights"
+                icon={BarChart3}
+                action={
+                    <div className="flex items-center gap-3">
+                        <div className="flex gap-1 bg-surface/50 p-1 rounded-xl">
+                            {(["month", "quarter", "year"] as const).map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setPeriod(p)}
+                                    className={cn(
+                                        "px-3 py-1.5 text-xs font-medium rounded-lg transition-all capitalize",
+                                        period === p
+                                            ? "bg-gold-500/10 text-gold-400 border border-gold-500/20"
+                                            : "text-muted hover:text-white"
+                                    )}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
+                        <button className="btn-outline text-xs">
+                            <Download className="h-3.5 w-3.5" />
+                            Export
+                        </button>
+                    </div>
+                }
+            />
 
-            <div className="grid gap-6 lg:grid-cols-2">
-                {/* Revenue */}
-                <div className="card">
-                    <h3 className="mb-4 text-lg font-semibold">Branch Revenue (This Month)</h3>
-                    {revenue.length === 0 ? (
-                        <p className="text-sm text-gray-500">No data available</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {revenue.map((r) => (
-                                <div key={r.branchId} className="flex items-center justify-between rounded-lg border border-gray-100 p-3">
-                                    <div>
-                                        <p className="font-medium text-gray-900">{r.branchName}</p>
-                                        <p className="text-xs text-gray-500">{r.invoiceCount} invoices</p>
+            {/* Summary KPIs */}
+            <div className="grid grid-cols-4 gap-4 mb-6">
+                <KPISummary icon={IndianRupee} label="Total Revenue" value={formatCurrency(totalRevenue)} />
+                <KPISummary icon={CalendarDays} label="Total Bookings" value={totalBookings.toString()} />
+                <KPISummary icon={TrendingUp} label="Avg Occupancy" value={`${avgOccupancy}%`} />
+                <KPISummary icon={Users} label="Conversion Rate" value="68%" />
+            </div>
+
+            {/* Revenue Trend */}
+            <div className="grid grid-cols-3 gap-6 mb-6">
+                <div className="col-span-2">
+                    <GlassCard>
+                        <div className="p-5">
+                            <h3 className="text-sm font-semibold text-white mb-6">Revenue Trend</h3>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <AreaChart data={revenueData}>
+                                    <defs>
+                                        <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor={GOLD} stopOpacity={0.3} />
+                                            <stop offset="100%" stopColor={GOLD} stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#222228" />
+                                    <XAxis dataKey="month" tick={{ fill: "#71717A", fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fill: "#71717A", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`} />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="revenue"
+                                        stroke={GOLD}
+                                        strokeWidth={2}
+                                        fill="url(#goldGrad)"
+                                        name="Revenue"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </GlassCard>
+                </div>
+
+                {/* Event Type Distribution */}
+                <GlassCard>
+                    <div className="p-5">
+                        <h3 className="text-sm font-semibold text-white mb-6">Event Types</h3>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <PieChart>
+                                <Pie
+                                    data={eventTypeData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={55}
+                                    outerRadius={80}
+                                    paddingAngle={4}
+                                    dataKey="value"
+                                >
+                                    {eventTypeData.map((entry, idx) => (
+                                        <Cell key={idx} fill={entry.color} stroke="none" />
+                                    ))}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <div className="space-y-2 mt-4">
+                            {eventTypeData.map((e) => (
+                                <div key={e.name} className="flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: e.color }} />
+                                        <span className="text-muted">{e.name}</span>
                                     </div>
-                                    <p className="text-lg font-bold text-primary-600">{formatCurrency(r.totalRevenue)}</p>
+                                    <span className="text-white font-medium">{e.value}%</span>
                                 </div>
                             ))}
                         </div>
-                    )}
-                </div>
+                    </div>
+                </GlassCard>
+            </div>
 
-                {/* Conversion & Outstanding */}
-                <div className="space-y-6">
-                    {conversion && (
-                        <div className="card">
-                            <h3 className="mb-4 text-lg font-semibold">Lead Conversion</h3>
-                            <div className="grid grid-cols-3 gap-4 text-center">
-                                <div>
-                                    <p className="text-2xl font-bold text-gray-900">{conversion.total}</p>
-                                    <p className="text-xs text-gray-500">Total Leads</p>
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-bold text-green-600">{conversion.converted}</p>
-                                    <p className="text-xs text-gray-500">Converted</p>
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-bold text-primary-600">{conversion.conversionRate}%</p>
-                                    <p className="text-xs text-gray-500">Rate</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+            {/* Branch Performance + Occupancy */}
+            <div className="grid grid-cols-2 gap-6">
+                {/* Branch Comparison */}
+                <GlassCard>
+                    <div className="p-5">
+                        <h3 className="text-sm font-semibold text-white mb-6">Branch Performance</h3>
+                        <ResponsiveContainer width="100%" height={260}>
+                            <BarChart data={branchData} layout="vertical" barSize={18}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#222228" horizontal={false} />
+                                <XAxis type="number" tick={{ fill: "#71717A", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`} />
+                                <YAxis type="category" dataKey="branch" tick={{ fill: "#71717A", fontSize: 11 }} axisLine={false} tickLine={false} width={90} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Bar dataKey="revenue" name="Revenue" fill={GOLD} radius={[0, 6, 6, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </GlassCard>
 
-                    {outstanding && (
-                        <div className="card">
-                            <h3 className="mb-4 text-lg font-semibold">Outstanding Summary</h3>
-                            <div className="grid grid-cols-3 gap-4 text-center">
-                                <div>
-                                    <p className="text-2xl font-bold text-red-600">{formatCurrency(outstanding.totalOutstanding)}</p>
-                                    <p className="text-xs text-gray-500">Total Outstanding</p>
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-bold text-gray-900">{outstanding.invoiceCount}</p>
-                                    <p className="text-xs text-gray-500">Pending Invoices</p>
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-bold text-orange-600">{outstanding.overdueCount}</p>
-                                    <p className="text-xs text-gray-500">Overdue</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                {/* Occupancy Trend */}
+                <GlassCard>
+                    <div className="p-5">
+                        <h3 className="text-sm font-semibold text-white mb-6">Occupancy Rate</h3>
+                        <ResponsiveContainer width="100%" height={260}>
+                            <LineChart data={occupancyData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#222228" />
+                                <XAxis dataKey="month" tick={{ fill: "#71717A", fontSize: 11 }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fill: "#71717A", fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Line
+                                    type="monotone"
+                                    dataKey="rate"
+                                    stroke={GOLD}
+                                    strokeWidth={2}
+                                    dot={{ r: 4, fill: GOLD, stroke: "#0B0B0F", strokeWidth: 2 }}
+                                    name="Occupancy"
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </GlassCard>
             </div>
         </div>
+    );
+}
+
+function KPISummary({
+    icon: Icon,
+    label,
+    value,
+}: {
+    icon: React.ElementType;
+    label: string;
+    value: string;
+}) {
+    return (
+        <GlassCard>
+            <div className="flex items-center gap-3 p-4">
+                <div className="h-10 w-10 rounded-xl bg-gold-500/10 border border-gold-500/20 flex items-center justify-center">
+                    <Icon className="h-5 w-5 text-gold-400" />
+                </div>
+                <div>
+                    <p className="text-xs text-muted">{label}</p>
+                    <p className="text-lg font-bold text-white">{value}</p>
+                </div>
+            </div>
+        </GlassCard>
     );
 }

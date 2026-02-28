@@ -1,34 +1,39 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import DashboardLayout from "./components/layout/DashboardLayout";
-import LoadingSpinner from "./components/ui/LoadingSpinner";
+import { useEffect } from "react";
+import { useAuthStore } from "@/stores/authStore";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 // Pages
-import LoginPage from "./pages/auth/LoginPage";
-import DashboardPage from "./pages/dashboard/DashboardPage";
-import LeadsPage from "./pages/leads/LeadsPage";
-import BookingsPage from "./pages/bookings/BookingsPage";
-import EventsPage from "./pages/events/EventsPage";
-import CalendarPage from "./pages/calendar/CalendarPage";
-import InventoryPage from "./pages/inventory/InventoryPage";
-import BillingPage from "./pages/billing/BillingPage";
-import BranchesPage from "./pages/branches/BranchesPage";
-import ReportsPage from "./pages/reports/ReportsPage";
+import LoginPage from "@/pages/auth/LoginPage";
+import DashboardPage from "@/pages/dashboard/DashboardPage";
+import LeadsPage from "@/pages/leads/LeadsPage";
+import BookingsPage from "@/pages/bookings/BookingsPage";
+import EventDetailsPage from "@/pages/events/EventDetailsPage";
+import CalendarPage from "@/pages/calendar/CalendarPage";
+import InventoryPage from "@/pages/inventory/InventoryPage";
+import BranchesPage from "@/pages/branches/BranchesPage";
+import ReportsPage from "@/pages/reports/ReportsPage";
+import SettingsPage from "@/pages/settings/SettingsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-    const { user, loading } = useAuth();
+    const { user, loading } = useAuthStore();
 
-    if (loading) return <LoadingSpinner />;
+    if (loading) return <LoadingSpinner fullScreen />;
     if (!user) return <Navigate to="/login" replace />;
 
     return <>{children}</>;
 }
 
 function AppRoutes() {
-    const { user, loading } = useAuth();
+    const { user, loading, loadProfile } = useAuthStore();
 
-    if (loading) return <LoadingSpinner />;
+    useEffect(() => {
+        loadProfile();
+    }, [loadProfile]);
+
+    if (loading) return <LoadingSpinner fullScreen />;
 
     return (
         <Routes>
@@ -47,11 +52,11 @@ function AppRoutes() {
                 <Route path="/branches" element={<BranchesPage />} />
                 <Route path="/leads" element={<LeadsPage />} />
                 <Route path="/bookings" element={<BookingsPage />} />
-                <Route path="/events" element={<EventsPage />} />
+                <Route path="/events/:id" element={<EventDetailsPage />} />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
-                <Route path="/billing" element={<BillingPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
             {/* Fallback */}
@@ -63,10 +68,18 @@ function AppRoutes() {
 export default function App() {
     return (
         <BrowserRouter>
-            <AuthProvider>
-                <AppRoutes />
-                <Toaster position="top-right" />
-            </AuthProvider>
+            <AppRoutes />
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    style: {
+                        background: "#17171C",
+                        color: "#fff",
+                        border: "1px solid #222228",
+                        borderRadius: "12px",
+                    },
+                }}
+            />
         </BrowserRouter>
     );
 }
