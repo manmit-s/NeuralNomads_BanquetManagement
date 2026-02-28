@@ -26,55 +26,21 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import GlassCard from "@/components/ui/GlassCard";
 import { cn, formatCurrency } from "@/lib/utils";
+import {
+    DEMO_REVENUE_DATA,
+    DEMO_EVENT_TYPE_DATA,
+    DEMO_BRANCH_CHART_DATA,
+    DEMO_OCCUPANCY_DATA,
+} from "@/data/demo";
 
 // Chart palette — dark gold theme
 const GOLD = "#D4AF37";
 
-// Demo data for presentation
-const revenueData = [
-    { month: "Jan", revenue: 850000, bookings: 12 },
-    { month: "Feb", revenue: 920000, bookings: 14 },
-    { month: "Mar", revenue: 780000, bookings: 11 },
-    { month: "Apr", revenue: 1100000, bookings: 16 },
-    { month: "May", revenue: 1350000, bookings: 19 },
-    { month: "Jun", revenue: 1200000, bookings: 17 },
-    { month: "Jul", revenue: 980000, bookings: 13 },
-    { month: "Aug", revenue: 1450000, bookings: 21 },
-    { month: "Sep", revenue: 1300000, bookings: 18 },
-    { month: "Oct", revenue: 1680000, bookings: 24 },
-    { month: "Nov", revenue: 2100000, bookings: 28 },
-    { month: "Dec", revenue: 1900000, bookings: 25 },
-];
-
-const eventTypeData = [
-    { name: "Wedding", value: 42, color: "#D4AF37" },
-    { name: "Corporate", value: 25, color: "#8B6914" },
-    { name: "Birthday", value: 15, color: "#FFD700" },
-    { name: "Reception", value: 10, color: "#C5A028" },
-    { name: "Other", value: 8, color: "#E8C547" },
-];
-
-const branchData = [
-    { branch: "Main Hall", revenue: 5200000, bookings: 85 },
-    { branch: "Garden", revenue: 3800000, bookings: 62 },
-    { branch: "Terrace", revenue: 2100000, bookings: 45 },
-    { branch: "Banquet A", revenue: 1500000, bookings: 30 },
-];
-
-const occupancyData = [
-    { month: "Jan", rate: 72 },
-    { month: "Feb", rate: 78 },
-    { month: "Mar", rate: 65 },
-    { month: "Apr", rate: 82 },
-    { month: "May", rate: 88 },
-    { month: "Jun", rate: 85 },
-    { month: "Jul", rate: 70 },
-    { month: "Aug", rate: 92 },
-    { month: "Sep", rate: 86 },
-    { month: "Oct", rate: 95 },
-    { month: "Nov", rate: 98 },
-    { month: "Dec", rate: 93 },
-];
+// Use centralized demo data
+const revenueData = DEMO_REVENUE_DATA;
+const eventTypeData = DEMO_EVENT_TYPE_DATA;
+const branchData = DEMO_BRANCH_CHART_DATA;
+const occupancyData = DEMO_OCCUPANCY_DATA;
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;

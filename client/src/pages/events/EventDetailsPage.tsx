@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -24,7 +24,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import GlassCard from "@/components/ui/GlassCard";
 import Modal from "@/components/ui/Modal";
 import { cn, formatDate, formatCurrency, getInitials } from "@/lib/utils";
-import api from "@/lib/api";
+import { DEMO_BOOKINGS } from "@/data/demo";
 import type { Booking } from "@/types";
 import toast from "react-hot-toast";
 
@@ -41,25 +41,15 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 export default function EventDetailsPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [booking, setBooking] = useState<Booking | null>(null);
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<Tab>("overview");
 
-    const loadBooking = useCallback(async () => {
-        if (!id) return;
-        try {
-            const { data } = await api.get(`/bookings/${id}`);
-            setBooking(data.data || data);
-        } catch {
-            toast.error("Failed to load booking");
-        } finally {
-            setLoading(false);
-        }
-    }, [id]);
+    // Look up booking from centralized demo data
+    const booking = DEMO_BOOKINGS.find((b) => b.id === id) || null;
+    const loading = false;
 
-    useEffect(() => {
-        loadBooking();
-    }, [loadBooking]);
+    const loadBooking = () => {
+        // Demo mode — data comes from centralized module
+    };
 
     if (loading) {
         return (
@@ -378,7 +368,6 @@ function VendorsTab({ booking }: { booking: Booking }) {
 function PaymentsTab({
     booking,
     paidPercent,
-    onRefresh,
 }: {
     booking: Booking;
     paidPercent: number;
@@ -391,18 +380,9 @@ function PaymentsTab({
 
     const handleAddPayment = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            await api.post(`/bookings/${booking.id}/payments`, {
-                amount: parseFloat(amount),
-                paymentMethod: method,
-            });
-            toast.success("Payment recorded");
-            setShowPayModal(false);
-            setAmount("");
-            onRefresh();
-        } catch {
-            toast.error("Failed to record payment");
-        }
+        toast.success("Payment recorded (demo)");
+        setShowPayModal(false);
+        setAmount("");
     };
 
     return (

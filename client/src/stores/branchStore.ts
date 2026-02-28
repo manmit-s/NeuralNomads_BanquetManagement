@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { Branch } from "@/types";
-import api from "@/lib/api";
+import { DEMO_BRANCHES } from "@/data/demo";
 
 interface BranchState {
     branches: Branch[];
@@ -11,18 +11,13 @@ interface BranchState {
 }
 
 export const useBranchStore = create<BranchState>((set) => ({
-    branches: [],
+    branches: DEMO_BRANCHES,
     selectedBranchId: null,
     loading: false,
 
     fetchBranches: async () => {
-        set({ loading: true });
-        try {
-            const { data } = await api.get("/branches");
-            set({ branches: data.data, loading: false });
-        } catch {
-            set({ loading: false });
-        }
+        // Demo mode — branches already loaded from centralized module
+        set({ branches: DEMO_BRANCHES, loading: false });
     },
 
     setSelectedBranch: (id) => set({ selectedBranchId: id }),

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
     DollarSign,
@@ -16,40 +16,24 @@ import GlassCard from "@/components/ui/GlassCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
-import api from "@/lib/api";
-import type { DashboardSummary } from "@/types";
-
-interface BranchPerformance {
-    branchId: string;
-    branchName: string;
-    totalRevenue: number;
-    invoiceCount: number;
-}
+import {
+    DEMO_DASHBOARD_SUMMARY,
+    DEMO_BRANCH_PERFORMANCE,
+    DEMO_TODAY_EVENTS,
+    DEMO_INVENTORY,
+    DEMO_BOOKINGS,
+    DEMO_LEADS,
+} from "@/data/demo";
 
 export default function DashboardPage() {
-    const [summary, setSummary] = useState<DashboardSummary | null>(null);
-    const [branchData, setBranchData] = useState<BranchPerformance[]>([]);
-    const [loading, setLoading] = useState(true);
+    const summary = DEMO_DASHBOARD_SUMMARY;
+    const branchData = DEMO_BRANCH_PERFORMANCE;
+    const [loading] = useState(false);
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                const [sumRes, branchRes] = await Promise.all([
-                    api.get("/reports/dashboard"),
-                    api.get("/reports/branch-revenue", {
-                        params: { from: new Date(new Date().getFullYear(), 0, 1).toISOString(), to: new Date().toISOString() },
-                    }).catch(() => ({ data: { data: [] } })),
-                ]);
-                setSummary(sumRes.data.data);
-                setBranchData(branchRes.data.data || []);
-            } catch {
-                // graceful fallback
-            } finally {
-                setLoading(false);
-            }
-        };
-        load();
-    }, []);
+    const todayEvents = DEMO_TODAY_EVENTS;
+    const lowStockCount = DEMO_INVENTORY.filter(
+        (i) => i.currentStock < i.minimumStock
+    ).length;
 
     if (loading) {
         return (
@@ -58,12 +42,6 @@ export default function DashboardPage() {
             </div>
         );
     }
-
-    const todayEvents = [
-        { time: "10:00 AM - 2:00 PM", name: "Mehta Wedding Reception", guests: 350, type: "Wedding", hall: "Crystal Hall" },
-        { time: "5:00 PM - 10:00 PM", name: "TechCorp Annual Gala", guests: 200, type: "Corporate", hall: "Grand Ballroom" },
-        { time: "7:00 PM - 11:00 PM", name: "Sharma Anniversary", guests: 120, type: "Anniversary", hall: "Garden Terrace" },
-    ];
 
     return (
         <div className="space-y-6">
@@ -75,24 +53,24 @@ export default function DashboardPage() {
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <KPICard
-                    title="Total Revenue"
-                    value={formatCurrency(summary?.monthlyRevenue || 0)}
+                    title="Monthly Revenue"
+                    value={formatCurrency(summary.monthlyRevenue)}
                     change="+12.5%"
                     changeType="positive"
                     icon={DollarSign}
                     iconColor="text-green-400"
                 />
                 <KPICard
-                    title="Outstanding Payments"
-                    value={formatCurrency(summary?.totalOutstanding || 0)}
+                    title="Outstanding"
+                    value={formatCurrency(summary.totalOutstanding)}
                     change="-3.2%"
                     changeType="negative"
                     icon={AlertTriangle}
                     iconColor="text-red-400"
                 />
                 <KPICard
-                    title="Conversion Rate"
-                    value={`${summary?.totalLeadsThisMonth || 0}%`}
+                    title="Leads This Month"
+                    value={String(summary.totalLeadsThisMonth)}
                     change="+2.1%"
                     changeType="positive"
                     icon={TrendingUp}
@@ -100,7 +78,7 @@ export default function DashboardPage() {
                 />
                 <KPICard
                     title="Active Bookings"
-                    value={String(summary?.activeBookings || 0)}
+                    value={String(summary.activeBookings)}
                     change="+5"
                     changeType="positive"
                     icon={CalendarCheck}
@@ -165,7 +143,7 @@ export default function DashboardPage() {
                                                 <td className="px-6 py-4">
                                                     <span className="inline-flex items-center gap-1 text-xs text-green-400">
                                                         <ArrowUpRight className="h-3 w-3" />
-                                                        +8%
+                                                        {branch.trend}
                                                     </span>
                                                 </td>
                                             </motion.tr>
@@ -194,21 +172,21 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                             <ActionItem
                                 icon={DollarSign}
-                                label="3 overdue payments"
-                                sublabel={formatCurrency(245000)}
+                                label={`${DEMO_BOOKINGS.filter(b => b.balanceAmount > 0 && b.status === "CONFIRMED").length} outstanding payments`}
+                                sublabel={formatCurrency(summary.totalOutstanding)}
                                 color="text-red-400"
                                 bgColor="bg-red-500/10"
                             />
                             <ActionItem
                                 icon={Package}
-                                label="5 low stock items"
+                                label={`${lowStockCount} low stock items`}
                                 sublabel="Needs reorder"
                                 color="text-amber-400"
                                 bgColor="bg-amber-500/10"
                             />
                             <ActionItem
                                 icon={Users}
-                                label="8 pending follow-ups"
+                                label={`${DEMO_LEADS.filter(l => l.status === "CALL" || l.status === "VISIT").length} pending follow-ups`}
                                 sublabel="Due today"
                                 color="text-blue-400"
                                 bgColor="bg-blue-500/10"

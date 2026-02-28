@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     CalendarDays,
@@ -12,40 +12,19 @@ import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import GlassCard from "@/components/ui/GlassCard";
 import { cn } from "@/lib/utils";
-import api from "@/lib/api";
+import { DEMO_BOOKINGS } from "@/data/demo";
 import type { Booking } from "@/types";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function CalendarPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [bookings, setBookings] = useState<Booking[]>([]);
-    const [, setLoading] = useState(true);
+    const bookings: Booking[] = DEMO_BOOKINGS;
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const monthName = currentDate.toLocaleString("default", { month: "long" });
-
-    const loadBookings = useCallback(async () => {
-        try {
-            setLoading(true);
-            const startDate = new Date(year, month, 1).toISOString().split("T")[0];
-            const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
-            const { data } = await api.get("/bookings", {
-                params: { startDate, endDate, limit: 100 },
-            });
-            setBookings(data.data || []);
-        } catch {
-            // ignore
-        } finally {
-            setLoading(false);
-        }
-    }, [year, month]);
-
-    useEffect(() => {
-        loadBookings();
-    }, [loadBookings]);
 
     // Calendar grid
     const calendarDays = useMemo(() => {

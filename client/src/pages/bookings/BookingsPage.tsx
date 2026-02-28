@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
     BookOpen,
@@ -16,41 +16,34 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import GlassCard from "@/components/ui/GlassCard";
 import EmptyState from "@/components/ui/EmptyState";
 import { cn, formatCurrency } from "@/lib/utils";
-import api from "@/lib/api";
-import type { Booking } from "@/types";
+import { DEMO_BOOKINGS } from "@/data/demo";
 import { useNavigate } from "react-router-dom";
 
 export default function BookingsPage() {
     const navigate = useNavigate();
-    const [bookings, setBookings] = useState<Booking[]>([]);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [page, setPage] = useState(1);
-    const [total, setTotal] = useState(0);
     const limit = 15;
 
-    const loadBookings = useCallback(async () => {
-        try {
-            setLoading(true);
-            const params: Record<string, unknown> = { page, limit };
-            if (statusFilter !== "ALL") params.status = statusFilter;
-            if (search) params.search = search;
-            const { data } = await api.get("/bookings", { params });
-            setBookings(data.data || []);
-            setTotal(data.pagination?.total || 0);
-        } catch {
-            // fallback
-        } finally {
-            setLoading(false);
+    const allBookings = useMemo(() => {
+        let filtered = [...DEMO_BOOKINGS];
+        if (statusFilter !== "ALL") filtered = filtered.filter((b) => b.status === statusFilter);
+        if (search) {
+            const q = search.toLowerCase();
+            filtered = filtered.filter(
+                (b) =>
+                    b.customerName.toLowerCase().includes(q) ||
+                    b.eventType.toLowerCase().includes(q) ||
+                    b.bookingNumber.toLowerCase().includes(q)
+            );
         }
-    }, [page, statusFilter, search]);
+        return filtered;
+    }, [statusFilter, search]);
 
-    useEffect(() => {
-        loadBookings();
-    }, [loadBookings]);
-
+    const total = allBookings.length;
     const totalPages = Math.ceil(total / limit);
+    const bookings = allBookings.slice((page - 1) * limit, page * limit);
 
     const statuses = ["ALL", "CONFIRMED", "TENTATIVE", "COMPLETED", "CANCELLED"];
 
@@ -107,11 +100,7 @@ export default function BookingsPage() {
                 ))}
             </div>
 
-            {loading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin h-8 w-8 border-2 border-gold-500/20 border-t-gold-500 rounded-full" />
-                </div>
-            ) : bookings.length === 0 ? (
+            {bookings.length === 0 ? (
                 <EmptyState
                     icon={BookOpen}
                     title="No bookings found"

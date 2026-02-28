@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
     Building2,
@@ -13,62 +13,33 @@ import GlassCard from "@/components/ui/GlassCard";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import { cn, getInitials } from "@/lib/utils";
-import api from "@/lib/api";
+import { DEMO_BRANCHES, type DemoBranch } from "@/data/demo";
 import toast from "react-hot-toast";
 
-interface Branch {
-    id: string;
-    name: string;
-    address?: string;
-    phone?: string;
-    city?: string;
-    state?: string;
-    staffCount?: number;
-    hallCount?: number;
-    isActive: boolean;
-}
-
 export default function BranchesPage() {
-    const [branches, setBranches] = useState<Branch[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [branches, setBranches] = useState<DemoBranch[]>(DEMO_BRANCHES);
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState({ name: "", address: "", phone: "", city: "", state: "" });
 
-    const loadBranches = useCallback(async () => {
-        try {
-            const { data } = await api.get("/branches");
-            setBranches(data.data || data || []);
-        } catch {
-            // fallback
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadBranches();
-    }, [loadBranches]);
-
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            await api.post("/branches", form);
-            toast.success("Branch created!");
-            setShowModal(false);
-            setForm({ name: "", address: "", phone: "", city: "", state: "" });
-            loadBranches();
-        } catch {
-            toast.error("Failed to create branch");
-        }
+        const newBranch: DemoBranch = {
+            id: `demo-br-${Date.now()}`,
+            name: form.name,
+            address: form.address,
+            city: form.city,
+            state: form.state,
+            phone: form.phone,
+            email: `${form.name.toLowerCase().replace(/\s/g, "")}@eventora.in`,
+            isActive: true,
+            staffCount: 0,
+            hallCount: 0,
+        };
+        setBranches((prev) => [...prev, newBranch]);
+        toast.success("Branch created!");
+        setShowModal(false);
+        setForm({ name: "", address: "", phone: "", city: "", state: "" });
     };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin h-8 w-8 border-2 border-gold-500/20 border-t-gold-500 rounded-full" />
-            </div>
-        );
-    }
 
     return (
         <div>

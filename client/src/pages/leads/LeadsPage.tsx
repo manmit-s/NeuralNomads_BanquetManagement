@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Users,
@@ -13,7 +13,7 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Modal from "@/components/ui/Modal";
 import { cn, formatDate, EVENT_TYPE_COLORS, LEAD_STATUS_LABELS } from "@/lib/utils";
-import api from "@/lib/api";
+import { DEMO_LEADS } from "@/data/demo";
 import type { Lead, LeadStatus } from "@/types";
 import toast from "react-hot-toast";
 
@@ -26,8 +26,8 @@ const KANBAN_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
 ];
 
 export default function LeadsPage() {
-    const [leads, setLeads] = useState<Lead[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [leads, setLeads] = useState<Lead[]>(DEMO_LEADS);
+    const [loading] = useState(false);
     const [search, setSearch] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
@@ -43,21 +43,6 @@ export default function LeadsPage() {
         notes: "",
         branchId: "",
     });
-
-    const loadLeads = useCallback(async () => {
-        try {
-            const { data } = await api.get("/leads", { params: { limit: 100 } });
-            setLeads(data.data || []);
-        } catch {
-            // fallback
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadLeads();
-    }, [loadLeads]);
 
     const getColumnLeads = (status: LeadStatus) =>
         leads
@@ -91,30 +76,28 @@ export default function LeadsPage() {
         );
         setDraggedLead(null);
         setDragOverColumn(null);
-
-        try {
-            await api.put(`/leads/${draggedLead.id}`, { status });
-            toast.success(`Lead moved to ${LEAD_STATUS_LABELS[status] || status}`);
-        } catch {
-            loadLeads();
-            toast.error("Failed to update lead");
-        }
+        toast.success(`Lead moved to ${LEAD_STATUS_LABELS[status] || status}`);
     };
 
     const handleCreateLead = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            await api.post("/leads", {
-                ...form,
-                guestCount: form.guestCount ? parseInt(form.guestCount) : undefined,
-            });
-            toast.success("Lead created!");
-            setShowModal(false);
-            setForm({ customerName: "", customerPhone: "", customerEmail: "", eventType: "Wedding", eventDate: "", guestCount: "", notes: "", branchId: "" });
-            loadLeads();
-        } catch {
-            toast.error("Failed to create lead");
-        }
+        const newLead: Lead = {
+            id: `demo-new-${Date.now()}`,
+            customerName: form.customerName,
+            customerPhone: form.customerPhone,
+            customerEmail: form.customerEmail || undefined,
+            eventType: form.eventType,
+            eventDate: form.eventDate || undefined,
+            guestCount: form.guestCount ? parseInt(form.guestCount) : undefined,
+            notes: form.notes || undefined,
+            status: "CALL" as LeadStatus,
+            branchId: form.branchId || "demo-001",
+            createdAt: new Date().toISOString(),
+        };
+        setLeads((prev) => [newLead, ...prev]);
+        toast.success("Lead created!");
+        setShowModal(false);
+        setForm({ customerName: "", customerPhone: "", customerEmail: "", eventType: "Wedding", eventDate: "", guestCount: "", notes: "", branchId: "" });
     };
 
     if (loading) {
