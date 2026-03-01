@@ -93,6 +93,13 @@ enum ChecklistItemStatus {
   DONE
 }
 
+enum ResourceCategory {
+  STAFF
+  FURNITURE
+  FOOD
+  OTHER
+}
+
 // ─── ORGANIZATION ────────────────────────────────────────────
 
 model Branch {
@@ -246,8 +253,9 @@ model Booking {
   createdBy   User   @relation("CreatedBookings", fields: [createdById], references: [id])
 
   // Relations
-  event   Event?
-  invoice Invoice?
+  event            Event?
+  invoice          Invoice?
+  bookingResources BookingResource[]
 
   // Composite index for conflict detection
   @@index([branchId, hallId, startDate, endDate])
@@ -334,8 +342,9 @@ model MenuItem {
   branch   Branch @relation(fields: [branchId], references: [id])
 
   // Relations
-  ingredients   MenuItemIngredient[]
-  eventMenuItems EventMenuItem[]
+  ingredients      MenuItemIngredient[]
+  eventMenuItems   EventMenuItem[]
+  menuItemResources MenuItemResource[]
 
   @@index([branchId])
   @@map("menu_items")
@@ -499,4 +508,49 @@ model Payment {
 
   @@index([invoiceId])
   @@map("payments")
+}
+
+// ─── RESOURCE PLANNING ───────────────────────────────────────
+
+model Resource {
+  id       String           @id @default(cuid())
+  name     String
+  category ResourceCategory
+  unit     String           // "persons", "pieces", "kg", "litres"
+
+  menuItemResources MenuItemResource[]
+  bookingResources  BookingResource[]
+
+  @@unique([name, category])
+  @@map("resources")
+}
+
+model MenuItemResource {
+  id               String @id @default(cuid())
+  quantityPerGuest Float  // e.g. 0.05 kg per guest
+
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id])
+
+  @@unique([menuItemId, resourceId])
+  @@map("menu_item_resources")
+}
+
+model BookingResource {
+  id               String           @id @default(cuid())
+  calculatedQty    Float
+  manualQty        Float?
+  isManuallyEdited Boolean          @default(false)
+  category         ResourceCategory
+
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id])
+
+  @@unique([bookingId, resourceId])
+  @@index([bookingId])
+  @@map("booking_resources")
 }
