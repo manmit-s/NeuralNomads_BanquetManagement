@@ -7,6 +7,7 @@ import {
     Calendar,
     Package,
     BarChart3,
+    Building2,
     Settings,
     LogOut,
     Sparkles,
@@ -20,6 +21,7 @@ import { useAuthStore } from "@/stores/authStore";
 
 const navItems = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
+    { label: "Branches", icon: Building2, path: "/branches", roles: ["OWNER"] },
     { label: "Leads Pipeline", icon: Users, path: "/leads", roles: ["OWNER", "BRANCH_MANAGER", "SALES"] },
     { label: "Bookings", icon: CalendarDays, path: "/bookings", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
     { label: "Calendar", icon: Calendar, path: "/calendar", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
@@ -29,7 +31,7 @@ const navItems = [
     { label: "AI Revenue", icon: BrainCircuit, path: "/ai-revenue", roles: ["OWNER", "BRANCH_MANAGER"] },
     { label: "Reputation", icon: Shield, path: "/reputation", roles: ["OWNER", "BRANCH_MANAGER"] },
     { label: "Branch Health", icon: Activity, path: "/branch-health", roles: ["OWNER", "BRANCH_MANAGER"] },
-    { label: "Settings", icon: Settings, path: "/settings", roles: ["OWNER", "BRANCH_MANAGER"] },
+    { label: "Settings", icon: Settings, path: "/settings", roles: ["OWNER"] },
 ];
 
 export default function Sidebar() {

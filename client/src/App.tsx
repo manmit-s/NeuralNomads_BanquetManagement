@@ -7,9 +7,11 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 // Pages
 import LoginPage from "@/pages/auth/LoginPage";
+import SignupPage from "@/pages/auth/SignupPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import LeadsPage from "@/pages/leads/LeadsPage";
 import BookingsPage from "@/pages/bookings/BookingsPage";
+import NewBookingPage from "@/pages/bookings/NewBookingPage";
 import EventDetailsPage from "@/pages/events/EventDetailsPage";
 import CalendarPage from "@/pages/calendar/CalendarPage";
 import InventoryPage from "@/pages/inventory/InventoryPage";
@@ -51,6 +53,7 @@ function AppRoutes() {
         <Routes>
             {/* Public */}
             <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+            <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignupPage />} />
 
             {/* Protected — Dashboard Layout */}
             <Route
@@ -64,6 +67,7 @@ function AppRoutes() {
                 <Route path="/branches" element={<BranchesPage />} />
                 <Route path="/leads" element={<LeadsPage />} />
                 <Route path="/bookings" element={<BookingsPage />} />
+                <Route path="/bookings/new" element={<NewBookingPage />} />
                 <Route path="/events/:id" element={<EventDetailsPage />} />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />

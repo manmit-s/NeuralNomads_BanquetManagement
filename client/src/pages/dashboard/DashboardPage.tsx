@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     DollarSign,
@@ -16,83 +16,184 @@ import GlassCard from "@/components/ui/GlassCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
+import { useBranchStore } from "@/stores/branchStore";
 import api from "@/lib/api";
-import type { DashboardSummary } from "@/types";
-
-interface BranchPerformance {
-    branchId: string;
-    branchName: string;
-    totalRevenue: number;
-    invoiceCount: number;
-}
+import {
+    DEMO_BRANCH_PERFORMANCE,
+    DEMO_INVENTORY,
+    DEMO_BOOKINGS,
+    DEMO_LEADS,
+    DEMO_HALLS,
+} from "@/data/demo";
 
 export default function DashboardPage() {
-    const [summary, setSummary] = useState<DashboardSummary | null>(null);
-    const [branchData, setBranchData] = useState<BranchPerformance[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { selectedBranchId, branches } = useBranchStore();
+    const [apiSummary, setApiSummary] = useState<any>(null);
+    const [isDemo, setIsDemo] = useState(true);
+    const [apiBranchPerf, setApiBranchPerf] = useState<any[]>([]);
+    const [apiBookings, setApiBookings] = useState<any[]>([]);
+    const [apiLeads, setApiLeads] = useState<any[]>([]);
+    const [apiInventory, setApiInventory] = useState<any[]>([]);
 
+    // Fetch all dashboard data from API
     useEffect(() => {
-        const load = async () => {
+        let cancelled = false;
+        (async () => {
             try {
-                const [sumRes, branchRes] = await Promise.all([
-                    api.get("/reports/dashboard"),
-                    api.get("/reports/branch-revenue", {
-                        params: { from: new Date(new Date().getFullYear(), 0, 1).toISOString(), to: new Date().toISOString() },
-                    }).catch(() => ({ data: { data: [] } })),
+                const params: Record<string, string> = {};
+                if (selectedBranchId) params.branchId = selectedBranchId;
+
+                const [dashRes, branchRes, bookingsRes, leadsRes, inventoryRes] = await Promise.allSettled([
+                    api.get("/reports/dashboard", { params, timeout: 5000 }),
+                    api.get("/reports/branch-performance", { params, timeout: 5000 }),
+                    api.get("/bookings", { params: { ...params, limit: "100" }, timeout: 5000 }),
+                    api.get("/leads", { params: { ...params, limit: "100" }, timeout: 5000 }),
+                    api.get("/inventory", { params: { ...params, limit: "100" }, timeout: 5000 }),
                 ]);
-                setSummary(sumRes.data.data);
-                setBranchData(branchRes.data.data || []);
+
+                if (!cancelled) {
+                    if (dashRes.status === "fulfilled" && dashRes.value.data?.data) {
+                        setApiSummary(dashRes.value.data.data);
+                        setIsDemo(false);
+                    }
+                    if (branchRes.status === "fulfilled" && branchRes.value.data?.data) {
+                        setApiBranchPerf(branchRes.value.data.data);
+                    }
+                    if (bookingsRes.status === "fulfilled") {
+                        const bd = bookingsRes.value.data?.data?.data || bookingsRes.value.data?.data || [];
+                        setApiBookings(Array.isArray(bd) ? bd : []);
+                    }
+                    if (leadsRes.status === "fulfilled") {
+                        const ld = leadsRes.value.data?.data?.data || leadsRes.value.data?.data || [];
+                        setApiLeads(Array.isArray(ld) ? ld : []);
+                    }
+                    if (inventoryRes.status === "fulfilled") {
+                        const inv = inventoryRes.value.data?.data?.data || inventoryRes.value.data?.data || [];
+                        setApiInventory(Array.isArray(inv) ? inv : []);
+                    }
+                }
             } catch {
-                // graceful fallback
-            } finally {
-                setLoading(false);
+                if (!cancelled) setIsDemo(true);
             }
-        };
-        load();
+        })();
+        return () => { cancelled = true; };
+    }, [selectedBranchId]);
+
+    const selectedBranchName = useMemo(() => {
+        if (!selectedBranchId) return null;
+        return branches.find((b) => b.id === selectedBranchId)?.name ?? null;
+    }, [selectedBranchId, branches]);
+
+    /* ── derive branchId for a booking via its hall ── */
+    const hallBranchMap = useMemo(() => {
+        const map = new Map<string, string>();
+        DEMO_HALLS.forEach((h) => map.set(h.id, h.branchId));
+        return map;
     }, []);
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin h-8 w-8 border-2 border-gold-500/20 border-t-gold-500 rounded-full" />
-            </div>
+    /* ── filtered collections — prefer API data, fallback to demo ── */
+    const filteredBookings = useMemo(() => {
+        const source = apiBookings.length > 0 ? apiBookings : DEMO_BOOKINGS;
+        if (!selectedBranchId) return source;
+        return source.filter((b: any) =>
+            b.branchId === selectedBranchId || hallBranchMap.get(b.hallId) === selectedBranchId
         );
-    }
+    }, [selectedBranchId, hallBranchMap, apiBookings]);
 
-    const todayEvents = [
-        { time: "10:00 AM - 2:00 PM", name: "Mehta Wedding Reception", guests: 350, type: "Wedding", hall: "Crystal Hall" },
-        { time: "5:00 PM - 10:00 PM", name: "TechCorp Annual Gala", guests: 200, type: "Corporate", hall: "Grand Ballroom" },
-        { time: "7:00 PM - 11:00 PM", name: "Sharma Anniversary", guests: 120, type: "Anniversary", hall: "Garden Terrace" },
-    ];
+    const filteredLeads = useMemo(() => {
+        const source = apiLeads.length > 0 ? apiLeads : DEMO_LEADS;
+        if (!selectedBranchId) return source;
+        return source.filter((l: any) => l.branchId === selectedBranchId);
+    }, [selectedBranchId, apiLeads]);
+
+    const filteredInventory = useMemo(() => {
+        const source = apiInventory.length > 0 ? apiInventory : DEMO_INVENTORY;
+        if (!selectedBranchId) return source;
+        return source.filter((i: any) => i.branchId === selectedBranchId);
+    }, [selectedBranchId, apiInventory]);
+
+    /* ── recompute KPIs — prefer API data, fallback to demo ── */
+    const summary = useMemo(() => {
+        if (!isDemo && apiSummary) return apiSummary;
+        const confirmed = filteredBookings.filter((b) => b.status === "CONFIRMED");
+        const now = new Date();
+        const thisMonthLeads = filteredLeads.filter((l) => {
+            const ld = new Date(l.createdAt);
+            return ld.getMonth() === now.getMonth() && ld.getFullYear() === now.getFullYear();
+        });
+        return {
+            monthlyRevenue: confirmed.reduce((s, b) => s + b.totalAmount, 0),
+            totalOutstanding: filteredBookings.reduce((s, b) => s + b.balanceAmount, 0),
+            totalLeadsThisMonth: thisMonthLeads.length,
+            activeBookings: confirmed.length,
+            upcomingEvents: filteredBookings.filter(
+                (b) => b.status !== "CANCELLED" && b.status !== "COMPLETED"
+            ).length,
+        };
+    }, [filteredBookings, filteredLeads, isDemo, apiSummary]);
+
+    /* ── branch performance table — prefer API, fallback to demo ── */
+    const branchData = useMemo(() => {
+        const source = apiBranchPerf.length > 0 ? apiBranchPerf : DEMO_BRANCH_PERFORMANCE;
+        if (!selectedBranchId) return source;
+        return source.filter((b: any) => b.branchId === selectedBranchId);
+    }, [selectedBranchId, apiBranchPerf]);
+
+    /* ── today's events from filtered bookings ── */
+    const todayEvents = useMemo(() => {
+        const now = new Date();
+        return filteredBookings
+            .filter((b) => {
+                if (!b.eventDate) return false;
+                const bd = new Date(b.eventDate);
+                return (
+                    bd.getDate() === now.getDate() &&
+                    bd.getMonth() === now.getMonth() &&
+                    bd.getFullYear() === now.getFullYear() &&
+                    b.status !== "CANCELLED"
+                );
+            })
+            .map((b) => ({
+                time: `${b.startTime} - ${b.endTime}`,
+                name: b.customerName,
+                guests: b.guestCount,
+                type: b.eventType,
+                hall: b.hall?.name || "TBD",
+            }));
+    }, [filteredBookings]);
+
+    const lowStockCount = filteredInventory.filter(
+        (i: any) => i.currentStock < (i.minimumStock ?? i.minStockLevel ?? 0)
+    ).length;
 
     return (
         <div className="space-y-6">
             <PageHeader
                 title="Dashboard"
-                subtitle={`Welcome back • ${formatDate(new Date())}`}
+                subtitle={`${selectedBranchName ? selectedBranchName : "All Branches"} • ${formatDate(new Date())}`}
             />
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <KPICard
-                    title="Total Revenue"
-                    value={formatCurrency(summary?.monthlyRevenue || 0)}
+                    title="Monthly Revenue"
+                    value={formatCurrency(summary.monthlyRevenue)}
                     change="+12.5%"
                     changeType="positive"
                     icon={DollarSign}
                     iconColor="text-green-400"
                 />
                 <KPICard
-                    title="Outstanding Payments"
-                    value={formatCurrency(summary?.totalOutstanding || 0)}
+                    title="Outstanding"
+                    value={formatCurrency(summary.totalOutstanding)}
                     change="-3.2%"
                     changeType="negative"
                     icon={AlertTriangle}
                     iconColor="text-red-400"
                 />
                 <KPICard
-                    title="Conversion Rate"
-                    value={`${summary?.totalLeadsThisMonth || 0}%`}
+                    title="Leads This Month"
+                    value={String(summary.totalLeadsThisMonth)}
                     change="+2.1%"
                     changeType="positive"
                     icon={TrendingUp}
@@ -100,7 +201,7 @@ export default function DashboardPage() {
                 />
                 <KPICard
                     title="Active Bookings"
-                    value={String(summary?.activeBookings || 0)}
+                    value={String(summary.activeBookings)}
                     change="+5"
                     changeType="positive"
                     icon={CalendarCheck}
@@ -160,12 +261,12 @@ export default function DashboardPage() {
                                                     {formatCurrency(branch.totalRevenue)}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-muted">
-                                                    {branch.invoiceCount}
+                                                    {branch.bookingCount ?? branch.invoiceCount ?? 0}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className="inline-flex items-center gap-1 text-xs text-green-400">
                                                         <ArrowUpRight className="h-3 w-3" />
-                                                        +8%
+                                                        {branch.trend}
                                                     </span>
                                                 </td>
                                             </motion.tr>
@@ -194,21 +295,21 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                             <ActionItem
                                 icon={DollarSign}
-                                label="3 overdue payments"
-                                sublabel={formatCurrency(245000)}
+                                label={`${filteredBookings.filter(b => b.balanceAmount > 0 && b.status === "CONFIRMED").length} outstanding payments`}
+                                sublabel={formatCurrency(summary.totalOutstanding)}
                                 color="text-red-400"
                                 bgColor="bg-red-500/10"
                             />
                             <ActionItem
                                 icon={Package}
-                                label="5 low stock items"
+                                label={`${lowStockCount} low stock items`}
                                 sublabel="Needs reorder"
                                 color="text-amber-400"
                                 bgColor="bg-amber-500/10"
                             />
                             <ActionItem
                                 icon={Users}
-                                label="8 pending follow-ups"
+                                label={`${filteredLeads.filter(l => l.status === "CALL" || l.status === "VISIT").length} pending follow-ups`}
                                 sublabel="Due today"
                                 color="text-blue-400"
                                 bgColor="bg-blue-500/10"

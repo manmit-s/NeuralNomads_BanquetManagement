@@ -113,6 +113,8 @@ export class ReportService {
 
     /**
      * Dashboard summary cards.
+     * Revenue & outstanding are derived from bookings (totalAmount / balanceAmount)
+     * since invoices may not exist yet for new setups.
      */
     static async dashboardSummary(branchScope?: string) {
         const where: any = {};
@@ -126,19 +128,34 @@ export class ReportService {
             totalLeads,
             activeBookings,
             upcomingEvents,
-            monthlyRevenue,
-            outstanding,
+            monthlyBookingRevenue,
+            outstandingBookings,
         ] = await Promise.all([
             prisma.lead.count({ where: { ...where, createdAt: { gte: monthStart } } }),
             prisma.booking.count({ where: { ...where, status: { in: ["TENTATIVE", "CONFIRMED"] } } }),
-            prisma.event.count({ where: { ...where, eventDate: { gte: today }, status: "UPCOMING" } }),
-            prisma.invoice.aggregate({
-                where: { ...where, createdAt: { gte: monthStart, lte: monthEnd } },
-                _sum: { paidAmount: true },
+            prisma.booking.count({
+                where: {
+                    ...where,
+                    startDate: { gte: today },
+                    status: { in: ["TENTATIVE", "CONFIRMED"] },
+                },
             }),
-            prisma.invoice.aggregate({
-                where: { ...where, status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] } },
-                _sum: { totalAmount: true, paidAmount: true },
+            // Revenue = sum of totalAmount of CONFIRMED + TENTATIVE bookings created this month
+            prisma.booking.aggregate({
+                where: {
+                    ...where,
+                    status: { in: ["CONFIRMED", "TENTATIVE"] },
+                    createdAt: { gte: monthStart, lte: monthEnd },
+                },
+                _sum: { totalAmount: true },
+            }),
+            // Outstanding = sum of balanceAmount across all active bookings
+            prisma.booking.aggregate({
+                where: {
+                    ...where,
+                    status: { in: ["TENTATIVE", "CONFIRMED"] },
+                },
+                _sum: { balanceAmount: true },
             }),
         ]);
 
@@ -146,8 +163,45 @@ export class ReportService {
             totalLeadsThisMonth: totalLeads,
             activeBookings,
             upcomingEvents,
-            monthlyRevenue: monthlyRevenue._sum.paidAmount || 0,
-            totalOutstanding: (outstanding._sum.totalAmount || 0) - (outstanding._sum.paidAmount || 0),
+            monthlyRevenue: monthlyBookingRevenue._sum.totalAmount || 0,
+            totalOutstanding: outstandingBookings._sum.balanceAmount || 0,
         };
+    }
+
+    /**
+     * Branch performance — booking-based revenue & count per branch.
+     */
+    static async branchPerformance(branchScope?: string) {
+        const where: any = {
+            status: { in: ["TENTATIVE", "CONFIRMED", "COMPLETED"] },
+        };
+        if (branchScope) where.branchId = branchScope;
+
+        const branches = await prisma.branch.findMany({
+            where: { isActive: true, ...(branchScope ? { id: branchScope } : {}) },
+            select: { id: true, name: true },
+        });
+
+        const results = await Promise.all(
+            branches.map(async (branch) => {
+                const bookingWhere = { ...where, branchId: branch.id };
+                const [revenue, bookingCount] = await Promise.all([
+                    prisma.booking.aggregate({
+                        where: bookingWhere,
+                        _sum: { totalAmount: true },
+                    }),
+                    prisma.booking.count({ where: bookingWhere }),
+                ]);
+                return {
+                    branchId: branch.id,
+                    branchName: branch.name,
+                    totalRevenue: revenue._sum.totalAmount || 0,
+                    bookingCount,
+                    trend: "+0%",
+                };
+            })
+        );
+
+        return results;
     }
 }

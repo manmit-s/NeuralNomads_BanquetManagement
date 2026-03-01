@@ -1,57 +1,77 @@
 import { create } from "zustand";
 import type { User } from "@/types";
-
-// ── Demo user (bypass auth) ──
-const DEMO_USER: User = {
-    id: "demo-owner",
-    email: "demo@eventora.com",
-    name: "Raj Patel",
-    phone: "+91-9876543210",
-    role: "OWNER",
-    isActive: true,
-};
+import api from "@/lib/api";
 
 interface AuthState {
     user: User | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
+    signUp: (data: { email: string; password: string; name: string; phone?: string; role?: string; branchId?: string }) => Promise<void>;
     signOut: () => void;
     loadProfile: () => Promise<void>;
     isOwner: boolean;
     isManager: boolean;
 }
 
-export const useAuthStore = create<AuthState>((set, _get) => ({
-    // Auto-login with demo user
-    user: DEMO_USER,
-    loading: false,
-    isOwner: true,
+export const useAuthStore = create<AuthState>((set) => ({
+    user: null,
+    loading: true, // starts loading until we check token
+    isOwner: false,
     isManager: false,
 
-    signIn: async (_email: string, _password: string) => {
-        // Bypass — just set demo user
-        localStorage.setItem("access_token", "DEMO_TOKEN");
+    signIn: async (email: string, password: string) => {
+        const res = await api.post("/auth/signin", { email, password });
+        const { user, token } = res.data.data;
+        localStorage.setItem("access_token", token);
         set({
-            user: DEMO_USER,
+            user,
             loading: false,
-            isOwner: true,
-            isManager: false,
+            isOwner: user.role === "OWNER",
+            isManager: user.role === "BRANCH_MANAGER",
+        });
+    },
+
+    signUp: async (data) => {
+        const res = await api.post("/auth/signup", data);
+        const { user, token } = res.data.data;
+        localStorage.setItem("access_token", token);
+        set({
+            user,
+            loading: false,
+            isOwner: user.role === "OWNER",
+            isManager: user.role === "BRANCH_MANAGER",
         });
     },
 
     signOut: () => {
         localStorage.removeItem("access_token");
-        set({ user: null, isOwner: false, isManager: false });
+        set({ user: null, isOwner: false, isManager: false, loading: false });
+        window.location.href = "/login";
     },
 
     loadProfile: async () => {
-        // Bypass — always return demo user
-        localStorage.setItem("access_token", "DEMO_TOKEN");
-        set({
-            user: DEMO_USER,
-            isOwner: true,
-            isManager: false,
-            loading: false,
-        });
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            set({ user: null, loading: false, isOwner: false, isManager: false });
+            return;
+        }
+        try {
+            const res = await api.get("/auth/profile", { timeout: 5000 });
+            const user = res.data.data;
+            if (user) {
+                set({
+                    user,
+                    loading: false,
+                    isOwner: user.role === "OWNER",
+                    isManager: user.role === "BRANCH_MANAGER",
+                });
+            } else {
+                localStorage.removeItem("access_token");
+                set({ user: null, loading: false, isOwner: false, isManager: false });
+            }
+        } catch {
+            localStorage.removeItem("access_token");
+            set({ user: null, loading: false, isOwner: false, isManager: false });
+        }
     },
 }));

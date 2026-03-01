@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Sparkles, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
@@ -21,8 +21,8 @@ export default function LoginPage() {
             toast.success("Welcome back!");
             navigate("/");
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } } };
-            toast.error(error.response?.data?.error || "Invalid credentials");
+            const error = err as { response?: { data?: { message?: string; error?: string } } };
+            toast.error(error.response?.data?.message || error.response?.data?.error || "Invalid credentials");
         } finally {
             setLoading(false);
         }
@@ -121,7 +121,14 @@ export default function LoginPage() {
                     </form>
                 </div>
 
-                <p className="text-center text-xs text-muted/50 mt-6">
+                <p className="text-center text-sm text-muted mt-6">
+                    Don&apos;t have an account?{" "}
+                    <Link to="/signup" className="text-gold-400 hover:text-gold-300 font-medium transition-colors">
+                        Sign Up
+                    </Link>
+                </p>
+
+                <p className="text-center text-xs text-muted/50 mt-4">
                     &copy; 2026 EVENTORA. All rights reserved.
                 </p>
             </motion.div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
     BookOpen,
@@ -10,47 +10,62 @@ import {
     Eye,
     ChevronLeft,
     ChevronRight,
+    CheckCircle2,
+    XCircle,
 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import GlassCard from "@/components/ui/GlassCard";
 import EmptyState from "@/components/ui/EmptyState";
 import { cn, formatCurrency } from "@/lib/utils";
-import api from "@/lib/api";
+import { DEMO_BOOKINGS } from "@/data/demo";
+import { useApiWithFallback } from "@/lib/useApiWithFallback";
+import { normalizeBookings } from "@/lib/normalizers";
 import type { Booking } from "@/types";
 import { useNavigate } from "react-router-dom";
+import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function BookingsPage() {
     const navigate = useNavigate();
-    const [bookings, setBookings] = useState<Booking[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: bookingsData, refetch } = useApiWithFallback<Booking[]>("/bookings", DEMO_BOOKINGS, { transform: normalizeBookings });
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [page, setPage] = useState(1);
-    const [total, setTotal] = useState(0);
+    const [updating, setUpdating] = useState(false);
     const limit = 15;
 
-    const loadBookings = useCallback(async () => {
+    const handleStatusChange = async (bookingId: string, newStatus: string) => {
+        setUpdating(true);
         try {
-            setLoading(true);
-            const params: Record<string, unknown> = { page, limit };
-            if (statusFilter !== "ALL") params.status = statusFilter;
-            if (search) params.search = search;
-            const { data } = await api.get("/bookings", { params });
-            setBookings(data.data || []);
-            setTotal(data.pagination?.total || 0);
-        } catch {
-            // fallback
+            await api.patch(`/bookings/${bookingId}`, { status: newStatus });
+            toast.success(`Booking ${newStatus.toLowerCase()} successfully`);
+            refetch();
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to update status");
         } finally {
-            setLoading(false);
+            setUpdating(false);
         }
-    }, [page, statusFilter, search]);
+    };
 
-    useEffect(() => {
-        loadBookings();
-    }, [loadBookings]);
+    const allBookings = useMemo(() => {
+        let filtered = [...bookingsData];
+        if (statusFilter !== "ALL") filtered = filtered.filter((b) => b.status === statusFilter);
+        if (search) {
+            const q = search.toLowerCase();
+            filtered = filtered.filter(
+                (b) =>
+                    (b.customerName || "").toLowerCase().includes(q) ||
+                    (b.eventType || "").toLowerCase().includes(q) ||
+                    (b.bookingNumber || "").toLowerCase().includes(q)
+            );
+        }
+        return filtered;
+    }, [bookingsData, statusFilter, search]);
 
+    const total = allBookings.length;
     const totalPages = Math.ceil(total / limit);
+    const bookings = allBookings.slice((page - 1) * limit, page * limit);
 
     const statuses = ["ALL", "CONFIRMED", "TENTATIVE", "COMPLETED", "CANCELLED"];
 
@@ -107,11 +122,7 @@ export default function BookingsPage() {
                 ))}
             </div>
 
-            {loading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin h-8 w-8 border-2 border-gold-500/20 border-t-gold-500 rounded-full" />
-                </div>
-            ) : bookings.length === 0 ? (
+            {bookings.length === 0 ? (
                 <EmptyState
                     icon={BookOpen}
                     title="No bookings found"
@@ -179,6 +190,39 @@ export default function BookingsPage() {
                                                     </p>
                                                 </div>
                                             )}
+
+                                            {/* Status action buttons */}
+                                            {booking.status === "TENTATIVE" && (
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, "CONFIRMED"); }}
+                                                        disabled={updating}
+                                                        className="p-2 rounded-lg bg-green-600/20 hover:bg-green-600/40 text-green-400 transition-all disabled:opacity-50"
+                                                        title="Confirm booking"
+                                                    >
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, "CANCELLED"); }}
+                                                        disabled={updating}
+                                                        className="p-2 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 transition-all disabled:opacity-50"
+                                                        title="Cancel booking"
+                                                    >
+                                                        <XCircle className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {booking.status === "CONFIRMED" && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, "COMPLETED"); }}
+                                                    disabled={updating}
+                                                    className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 transition-all disabled:opacity-50"
+                                                    title="Mark completed"
+                                                >
+                                                    Complete
+                                                </button>
+                                            )}
+
                                             <button
                                                 onClick={() => navigate(`/events/${booking.id}`)}
                                                 className="btn-ghost p-2"

@@ -4,8 +4,8 @@ import { AuthService } from "../services/auth.service.js";
 export class AuthController {
     static async signUp(req: Request, res: Response, next: NextFunction) {
         try {
-            const user = await AuthService.signUp(req.body);
-            res.status(201).json({ success: true, data: user });
+            const result = await AuthService.signUp(req.body);
+            res.status(201).json({ success: true, data: result });
         } catch (error) { next(error); }
     }
 

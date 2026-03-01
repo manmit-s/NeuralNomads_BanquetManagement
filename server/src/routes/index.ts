@@ -10,6 +10,7 @@ import reportRoutes from "./report.routes.js";
 import aiRevenueRoutes from "./aiRevenue.routes.js";
 import aiReviewRoutes from "./aiReview.routes.js";
 import branchHealthRoutes from "./branchHealth.routes.js";
+import { prisma } from "../lib/prisma.js";
 
 const router = Router();
 
@@ -25,9 +26,21 @@ router.use("/ai", aiRevenueRoutes);
 router.use("/ai", aiReviewRoutes);
 router.use("/ai", branchHealthRoutes);
 
-// Health check
-router.get("/health", (_req, res) => {
-    res.json({ success: true, message: "API is running", timestamp: new Date().toISOString() });
+// Health check (no auth needed)
+router.get("/health", async (_req, res) => {
+    let dbStatus = "disconnected";
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        dbStatus = "connected";
+    } catch (e: any) {
+        dbStatus = `error: ${e.message?.slice(0, 120)}`;
+    }
+    res.json({
+        success: true,
+        message: "API is running",
+        database: dbStatus,
+        timestamp: new Date().toISOString(),
+    });
 });
 
 export default router;

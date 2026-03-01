@@ -7,13 +7,18 @@ import { useBranchStore } from "@/stores/branchStore";
 
 export default function DashboardLayout() {
     const { user } = useAuthStore();
-    const { fetchBranches } = useBranchStore();
+    const { fetchBranches, setSelectedBranch } = useBranchStore();
 
     useEffect(() => {
-        if (user?.role === "OWNER") {
-            fetchBranches();
+        fetchBranches();
+    }, [fetchBranches]);
+
+    // Branch managers are locked to their branch
+    useEffect(() => {
+        if (user?.role !== "OWNER" && user?.branchId) {
+            setSelectedBranch(user.branchId);
         }
-    }, [user, fetchBranches]);
+    }, [user, setSelectedBranch]);
 
     return (
         <div className="flex h-screen bg-background">

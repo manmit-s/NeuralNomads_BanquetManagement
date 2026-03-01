@@ -13,5 +13,6 @@ router.get("/revenue", authorize("OWNER", "BRANCH_MANAGER"), ReportController.br
 router.get("/conversion", authorize("OWNER", "BRANCH_MANAGER"), ReportController.conversionRate);
 router.get("/occupancy", authorize("OWNER", "BRANCH_MANAGER"), ReportController.occupancyRate);
 router.get("/outstanding", authorize("OWNER", "BRANCH_MANAGER"), ReportController.outstandingSummary);
+router.get("/branch-performance", authorize("OWNER", "BRANCH_MANAGER"), ReportController.branchPerformance);
 
 export default router;
