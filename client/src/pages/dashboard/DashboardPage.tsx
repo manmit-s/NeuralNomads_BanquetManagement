@@ -11,6 +11,8 @@ import {
     ArrowUpRight,
     ArrowDownRight,
     Loader2,
+    Star,
+    BrainCircuit,
 } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
 import GlassCard from "@/components/ui/GlassCard";
@@ -19,15 +21,29 @@ import PageHeader from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { useBranchStore } from "@/stores/branchStore";
 import api from "@/lib/api";
+import { useAuthStore } from "@/stores/authStore";
+import { toast } from "react-hot-toast";
+import type { DashboardSummary } from "@/types";
+
+interface BranchPerformance {
+    branchId: string;
+    branchName: string;
+    totalRevenue: number;
+    invoiceCount: number;
+    bookingCount?: number;
+    trend?: string;
+}
 
 export default function DashboardPage() {
     const { selectedBranchId, branches } = useBranchStore();
+    const { user } = useAuthStore() as any;
     const [apiSummary, setApiSummary] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [apiBranchPerf, setApiBranchPerf] = useState<any[]>([]);
     const [apiBookings, setApiBookings] = useState<any[]>([]);
     const [apiLeads, setApiLeads] = useState<any[]>([]);
     const [apiInventory, setApiInventory] = useState<any[]>([]);
+    const [sentiment, setSentiment] = useState<any>(null);
 
     // Fetch all dashboard data from API
     useEffect(() => {
@@ -52,6 +68,14 @@ export default function DashboardPage() {
                     }
                     if (branchRes.status === "fulfilled" && branchRes.value.data?.data) {
                         setApiBranchPerf(branchRes.value.data.data);
+
+                        // Fetch sentiment for the selected branch or first available
+                        const bId = selectedBranchId || user?.branchId || branchRes.value.data.data[0]?.branchId;
+                        if (bId) {
+                            api.get(`/branches/${bId}/sentiment`).then(sentRes => {
+                                if (!cancelled) setSentiment(sentRes.data.data);
+                            }).catch(() => null);
+                        }
                     }
                     if (bookingsRes.status === "fulfilled") {
                         const bd = bookingsRes.value.data?.data?.data || bookingsRes.value.data?.data || [];
@@ -112,19 +136,19 @@ export default function DashboardPage() {
     /* ── recompute KPIs — from real data ── */
     const summary = useMemo(() => {
         if (apiSummary) return apiSummary;
-        const confirmed = filteredBookings.filter((b) => b.status === "CONFIRMED");
+        const confirmed = filteredBookings.filter((b: any) => b.status === "CONFIRMED");
         const now = new Date();
-        const thisMonthLeads = filteredLeads.filter((l) => {
+        const thisMonthLeads = filteredLeads.filter((l: any) => {
             const ld = new Date(l.createdAt);
             return ld.getMonth() === now.getMonth() && ld.getFullYear() === now.getFullYear();
         });
         return {
             monthlyRevenue: confirmed.reduce((s, b) => s + (b.totalAmount || 0), 0),
-            totalOutstanding: filteredBookings.reduce((s, b) => s + (b.balanceAmount || 0), 0),
+            totalOutstanding: filteredBookings.reduce((s: number, b: any) => s + (b.balanceAmount || 0), 0),
             totalLeadsThisMonth: thisMonthLeads.length,
             activeBookings: confirmed.length,
             upcomingEvents: filteredBookings.filter(
-                (b) => b.status !== "CANCELLED" && b.status !== "COMPLETED"
+                (b: any) => b.status !== "CANCELLED" && b.status !== "COMPLETED"
             ).length,
         };
     }, [filteredBookings, filteredLeads, apiSummary]);
@@ -139,7 +163,7 @@ export default function DashboardPage() {
     const todayEvents = useMemo(() => {
         const now = new Date();
         return filteredBookings
-            .filter((b) => {
+            .filter((b: any) => {
                 if (!b.eventDate) return false;
                 const bd = new Date(b.eventDate);
                 return (
@@ -149,7 +173,7 @@ export default function DashboardPage() {
                     b.status !== "CANCELLED"
                 );
             })
-            .map((b) => ({
+            .map((b: any) => ({
                 time: `${b.startTime} - ${b.endTime}`,
                 name: b.customerName,
                 guests: b.guestCount,
@@ -311,6 +335,90 @@ export default function DashboardPage() {
                                 bgColor="bg-blue-500/10"
                             />
                         </div>
+                    </GlassCard>
+
+                    {/* Sentiment Analysis Gauge */}
+                    <GlassCard>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                                <BrainCircuit className="h-4 w-4 text-purple-400" />
+                                Branch Sentiment Analysis
+                            </h3>
+                            {sentiment?.analyzedAt && (
+                                <span className="text-[10px] text-muted uppercase tracking-wider">
+                                    Last Analysis: {formatDate(new Date(sentiment.analyzedAt))}
+                                </span>
+                            )}
+                        </div>
+
+                        {sentiment ? (
+                            <div className="space-y-6">
+                                <div className="flex flex-col items-center">
+                                    <div className="relative h-24 w-48 mb-2 overflow-hidden">
+                                        {/* Half circle track */}
+                                        <div className="absolute top-0 left-0 w-48 h-48 rounded-full border-[12px] border-white/5" />
+                                        {/* Colored filled segment */}
+                                        <div
+                                            className="absolute top-0 left-0 w-48 h-48 rounded-full border-[12px] border-gold-500 origin-bottom transition-all duration-1000"
+                                            style={{
+                                                clipPath: 'inset(0 0 50% 0)',
+                                                transform: `rotate(${((sentiment.sentimentScore / 10) * 180) - 90}deg)`,
+                                                borderColor: sentiment.sentimentScore > 7 ? '#4ade80' : sentiment.sentimentScore > 4 ? '#fbbf24' : '#f87171'
+                                            }}
+                                        />
+                                        <div className="absolute bottom-0 left-0 w-48 h-px bg-transparent z-10" />
+                                        <div className="absolute inset-x-0 bottom-0 text-center">
+                                            <span className="text-3xl font-bold text-white leading-none">
+                                                {sentiment.sentimentScore}
+                                            </span>
+                                            <span className="text-xs text-muted block">out of 10</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-full flex justify-between text-[10px] items-center text-muted-dark px-2 font-bold uppercase tracking-tighter">
+                                        <span>Detractors</span>
+                                        <span>Passives</span>
+                                        <span>Promoters</span>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className="bg-white/[0.02] rounded-lg p-2">
+                                        <p className="text-[10px] text-muted-dark mb-1">PROMOTERS</p>
+                                        <p className="text-sm font-bold text-green-400">{sentiment.stats?.positive || 0}%</p>
+                                    </div>
+                                    <div className="bg-white/[0.02] rounded-lg p-2">
+                                        <p className="text-[10px] text-muted-dark mb-1">PASSIVES</p>
+                                        <p className="text-sm font-bold text-amber-400">{sentiment.stats?.neutral || 0}%</p>
+                                    </div>
+                                    <div className="bg-white/[0.02] rounded-lg p-2">
+                                        <p className="text-[10px] text-muted-dark mb-1">DETRACTORS</p>
+                                        <p className="text-sm font-bold text-red-400">{sentiment.stats?.negative || 0}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="py-8 text-center bg-white/[0.02] rounded-xl border border-dashed border-white/5">
+                                <Star className="h-8 w-8 text-white/10 mx-auto mb-2" />
+                                <p className="text-sm text-muted">No sentiment data available</p>
+                                <button
+                                    onClick={async () => {
+                                        const bId = user?.branchId || branchData[0]?.branchId;
+                                        if (bId) {
+                                            toast.promise(api.post(`/branches/${bId}/analyze-sentiment`), {
+                                                loading: 'Analyzing mood...',
+                                                success: (res) => {
+                                                    setSentiment(res.data.data);
+                                                    return 'Analysis complete!';
+                                                },
+                                                error: 'Analysis failed'
+                                            });
+                                        }
+                                    }}
+                                    className="mt-3 text-xs text-gold-500 hover:text-gold-400 underline underline-offset-4"
+                                >
+                                    Run First Analysis
+                                </button>
+                            </div>
+                        )}
                     </GlassCard>
 
                     {/* Today's Events */}

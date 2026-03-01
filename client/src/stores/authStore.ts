@@ -15,36 +15,49 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
-    loading: true, // starts loading until we check token
+    loading: true,
     isOwner: false,
     isManager: false,
 
     signIn: async (email: string, password: string) => {
-        const res = await api.post("/auth/signin", { email, password });
-        const { user, token } = res.data.data;
-        localStorage.setItem("access_token", token);
-        set({
-            user,
-            loading: false,
-            isOwner: user.role === "OWNER",
-            isManager: user.role === "BRANCH_MANAGER",
-        });
+        set({ loading: true });
+        try {
+            const res = await api.post("/auth/signin", { email, password });
+            const { user, token } = res.data.data;
+            localStorage.setItem("access_token", token);
+            set({
+                user,
+                loading: false,
+                isOwner: user.role === "OWNER",
+                isManager: user.role === "BRANCH_MANAGER",
+            });
+        } catch (error) {
+            set({ loading: false });
+            throw error;
+        }
     },
 
-    signUp: async (data) => {
-        const res = await api.post("/auth/signup", data);
-        const { user, token } = res.data.data;
-        localStorage.setItem("access_token", token);
-        set({
-            user,
-            loading: false,
-            isOwner: user.role === "OWNER",
-            isManager: user.role === "BRANCH_MANAGER",
-        });
+    signUp: async (data: any) => {
+        set({ loading: true });
+        try {
+            const res = await api.post("/auth/signup", data);
+            const { user, token } = res.data.data;
+            localStorage.setItem("access_token", token);
+            set({
+                user,
+                loading: false,
+                isOwner: user.role === "OWNER",
+                isManager: user.role === "BRANCH_MANAGER",
+            });
+        } catch (error) {
+            set({ loading: false });
+            throw error;
+        }
     },
 
     signOut: () => {
         localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
         set({ user: null, isOwner: false, isManager: false, loading: false });
         window.location.href = "/login";
     },
@@ -67,10 +80,12 @@ export const useAuthStore = create<AuthState>((set) => ({
                 });
             } else {
                 localStorage.removeItem("access_token");
+                localStorage.removeItem("refresh_token");
                 set({ user: null, loading: false, isOwner: false, isManager: false });
             }
         } catch {
             localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
             set({ user: null, loading: false, isOwner: false, isManager: false });
         }
     },

@@ -18,5 +18,7 @@ router.use(authenticate);
 router.post("/", authorize("OWNER"), validate(createBranchSchema), BranchController.create);
 router.patch("/:id", authorize("OWNER"), validate(updateBranchSchema), BranchController.update);
 router.delete("/:id", authorize("OWNER"), BranchController.deactivate);
+router.post("/:id/analyze-sentiment", BranchController.analyzeSentiment);
+router.get("/:id/sentiment", BranchController.getSentiment);
 
 export default router;

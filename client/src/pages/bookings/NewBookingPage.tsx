@@ -109,16 +109,29 @@ export default function NewBookingPage() {
             .finally(() => setLoadingHalls(false));
     }, [form.branchId]);
 
-    // Fetch leads
+    // Fetch leads based on selected branch
     useEffect(() => {
+        if (!form.branchId) {
+            setLeads([]);
+            return;
+        }
         setLoadingLeads(true);
-        api.get("/leads", { timeout: 5000, params: { limit: 100 } })
+        api.get("/leads", {
+            timeout: 5000,
+            params: {
+                limit: 100,
+                branchId: form.branchId // This will be handled by branchIsolation or LeadService
+            }
+        })
             .then(res => {
-                setLeads(res.data?.data || []);
+                // The API might return { success: true, data: [...], meta: {...} } 
+                // or just { success: true, data: [...] }
+                const leadData = res.data?.data?.data || res.data?.data || [];
+                setLeads(Array.isArray(leadData) ? leadData : []);
             })
             .catch(() => setLeads([]))
             .finally(() => setLoadingLeads(false));
-    }, []);
+    }, [form.branchId]);
 
     // Filtered leads for search
     const filteredLeads = useMemo(() => {
@@ -144,11 +157,25 @@ export default function NewBookingPage() {
 
     // Update form helper
     const updateForm = (field: keyof FormData, value: string) => {
-        setForm(f => ({ ...f, [field]: value }));
-        // Auto-sync end date
-        if (field === "startDate" && !form.endDate) {
-            setForm(f => ({ ...f, startDate: value, endDate: value }));
-        }
+        setForm(f => {
+            const newForm = { ...f, [field]: value };
+
+            // Auto-sync end date
+            if (field === "startDate" && !f.endDate) {
+                newForm.endDate = value;
+            }
+
+            // Auto-populate from hall
+            if (field === "hallId" && value) {
+                const hall = halls.find(h => h.id === value);
+                if (hall) {
+                    newForm.totalAmount = String(hall.pricePerEvent);
+                    newForm.guestCount = String(hall.capacity);
+                }
+            }
+
+            return newForm;
+        });
     };
 
     // Create a new lead via API

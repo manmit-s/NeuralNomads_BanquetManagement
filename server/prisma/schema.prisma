@@ -1,7 +1,3 @@
-// ──────────────────────────────────────────────────────────────
-// Prisma Schema — Multi-Branch Banquet Management System
-// ──────────────────────────────────────────────────────────────
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,7 +8,434 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── ENUMS ───────────────────────────────────────────────────
+model Branch {
+  id             String          @id @default(cuid())
+  name           String
+  address        String
+  city           String
+  phone          String
+  email          String
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  
+  // Relations
+  bookings       Booking[]
+  events         Event[]
+  halls          Hall[]
+  inventoryItems InventoryItem[]
+  invoices       Invoice[]
+  leads          Lead[]
+  menuItems      MenuItem[]
+  purchaseOrders PurchaseOrder[]
+  users          User[]
+  vendors        Vendor[]
+  reviews        Review[]
+  sentiments     BranchSentiment[]
+
+  @@map("branches")
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  reviewText  String   @map("review_text")
+  rating      Int
+  createdAt   DateTime @default(now())
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@map("reviews")
+}
+
+model BranchSentiment {
+  id             String   @id @default(cuid())
+  sentimentScore Float    @map("sentiment_score")
+  analyzedAt     DateTime @default(now()) @map("analyzed_at")
+  branchId       String
+  branch         Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@map("branch_sentiments")
+}
+
+model User {
+  id              String         @id @default(cuid())
+  authId          String         @unique
+  email           String         @unique
+  passwordHash    String?        // bcrypt hash for self-managed auth
+  name            String
+  phone           String?
+  role            Role
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  branchId        String?
+  
+  branch          Branch?        @relation(fields: [branchId], references: [id])
+  createdBookings Booking[]      @relation("CreatedBookings")
+  leadActivities  LeadActivity[]
+  assignedLeads   Lead[]         @relation("AssignedLeads")
+  createdLeads    Lead[]         @relation("CreatedLeads")
+  payments        Payment[]
+
+  @@index([branchId])
+  @@index([role])
+  @@map("users")
+}
+
+model Hall {
+  id            String    @id @default(cuid())
+  name          String
+  capacity      Int
+  pricePerEvent Float
+  amenities     String[]
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  branchId      String
+  bookings      Booking[]
+  branch        Branch    @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@map("halls")
+}
+
+model Lead {
+  id            String         @id @default(cuid())
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  eventType     String
+  eventDate     DateTime?
+  guestCount    Int?
+  status        LeadStatus     @default(CALL)
+  source        String?
+  notes         String?
+  lostReason    String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  branchId      String
+  assignedToId  String
+  createdById   String
+  booking       Booking?
+  activities    LeadActivity[]
+  assignedTo    User           @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  branch        Branch         @relation(fields: [branchId], references: [id])
+  createdBy     User           @relation("CreatedLeads", fields: [createdById], references: [id])
+
+  @@index([branchId, status])
+  @@index([branchId, assignedToId])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id        String   @id @default(cuid())
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+  leadId    String
+  userId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([leadId])
+  @@map("lead_activities")
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  bookingNumber String        @unique
+  startDate     DateTime
+  endDate       DateTime
+  startTime     String
+  endTime       String
+  guestCount    Int
+  status        BookingStatus @default(TENTATIVE)
+  totalAmount   Float
+  advanceAmount Float         @default(0)
+  balanceAmount Float
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  branchId      String
+  hallId        String
+  leadId        String        @unique
+  createdById   String
+  
+  branch           Branch            @relation(fields: [branchId], references: [id])
+  createdBy        User              @relation("CreatedBookings", fields: [createdById], references: [id])
+  hall             Hall              @relation(fields: [hallId], references: [id])
+  lead             Lead              @relation(fields: [leadId], references: [id])
+  event            Event?
+  invoice          Invoice?
+  bookingResources BookingResource[]
+
+  @@index([branchId, hallId, startDate, endDate])
+  @@map("bookings")
+}
+
+model Event {
+  id              String           @id @default(cuid())
+  eventDate       DateTime
+  guestCount      Int
+  status          EventStatus      @default(UPCOMING)
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  branchId        String
+  bookingId       String           @unique
+  checklist       EventChecklist[]
+  menuSelections  EventMenuItem[]
+  vendorBookings  EventVendor[]
+  booking         Booking          @relation(fields: [bookingId], references: [id])
+  branch          Branch           @relation(fields: [branchId], references: [id])
+  stockDeductions StockMovement[]
+
+  @@index([branchId, eventDate])
+  @@map("events")
+}
+
+model EventMenuItem {
+  id         String   @id @default(cuid())
+  quantity   Int
+  eventId    String
+  menuItemId String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+
+  @@unique([eventId, menuItemId])
+  @@map("event_menu_items")
+}
+
+model EventVendor {
+  id       String  @id @default(cuid())
+  service  String
+  cost     Float
+  notes    String?
+  eventId  String
+  vendorId String
+  event    Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  vendor   Vendor  @relation(fields: [vendorId], references: [id])
+
+  @@map("event_vendors")
+}
+
+model EventChecklist {
+  id          String              @id @default(cuid())
+  task        String
+  status      ChecklistItemStatus @default(PENDING)
+  dueDate     DateTime?
+  completedAt DateTime?
+  eventId     String
+  event       Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("event_checklists")
+}
+
+model MenuItem {
+  id             String               @id @default(cuid())
+  name           String
+  category       String
+  pricePerPlate  Float
+  isVeg          Boolean              @default(true)
+  isActive       Boolean              @default(true)
+  branchId       String
+  
+  branch            Branch               @relation(fields: [branchId], references: [id])
+  eventMenuItems    EventMenuItem[]
+  ingredients       MenuItemIngredient[]
+  menuItemResources MenuItemResource[]
+
+  @@index([branchId])
+  @@map("menu_items")
+}
+
+model MenuItemIngredient {
+  id                 String        @id @default(cuid())
+  quantityPerServing Float
+  unit               String
+  menuItemId         String
+  inventoryItemId    String
+  inventoryItem      InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  menuItem           MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, inventoryItemId])
+  @@map("menu_item_ingredients")
+}
+
+model InventoryItem {
+  id                  String               @id @default(cuid())
+  name                String
+  category            String
+  unit                String
+  currentStock        Float                @default(0)
+  minStockLevel       Float                @default(0)
+  costPerUnit         Float                @default(0)
+  isActive            Boolean              @default(true)
+  branchId            String
+  branch              Branch               @relation(fields: [branchId], references: [id])
+  menuItemIngredients MenuItemIngredient[]
+  purchaseOrderItems  PurchaseOrderItem[]
+  stockMovements      StockMovement[]
+
+  @@index([branchId, currentStock])
+  @@map("inventory_items")
+}
+
+model StockMovement {
+  id              String            @id @default(cuid())
+  type            StockMovementType
+  quantity        Float
+  notes           String?
+  createdAt       DateTime          @default(now())
+  inventoryItemId String
+  eventId         String?
+  event           Event?            @relation(fields: [eventId], references: [id])
+  inventoryItem   InventoryItem     @relation(fields: [inventoryItemId], references: [id])
+
+  @@index([inventoryItemId, createdAt])
+  @@map("stock_movements")
+}
+
+model Vendor {
+  id             String          @id @default(cuid())
+  name           String
+  service        String
+  phone          String
+  email          String?
+  address        String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  branchId       String
+  eventVendors   EventVendor[]
+  purchaseOrders PurchaseOrder[]
+  branch         Branch          @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@map("vendors")
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  orderNumber String              @unique
+  status      PurchaseOrderStatus @default(DRAFT)
+  totalAmount Float               @default(0)
+  notes       String?
+  orderedAt   DateTime?
+  receivedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  branchId    String
+  vendorId    String
+  items       PurchaseOrderItem[]
+  branch      Branch              @relation(fields: [branchId], references: [id])
+  vendor      Vendor              @relation(fields: [vendorId], references: [id])
+
+  @@index([branchId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(cuid())
+  quantity         Float
+  unitPrice        Float
+  receivedQuantity Float         @default(0)
+  purchaseOrderId  String
+  inventoryItemId  String
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_order_items")
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  subtotal      Float
+  taxRate       Float         @default(18)
+  taxAmount     Float
+  totalAmount   Float
+  paidAmount    Float         @default(0)
+  dueDate       DateTime
+  status        InvoiceStatus @default(DRAFT)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  branchId      String
+  bookingId     String        @unique
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+  branch        Branch        @relation(fields: [branchId], references: [id])
+  payments      Payment[]
+
+  @@index([branchId, status])
+  @@map("invoices")
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  amount       Float
+  method       PaymentMethod
+  type         PaymentType
+  referenceNo  String?
+  notes        String?
+  paidAt       DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  invoiceId    String
+  receivedById String
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id])
+  receivedBy   User          @relation(fields: [receivedById], references: [id])
+
+  @@index([invoiceId])
+  @@map("payments")
+}
+
+// ─── RESOURCE PLANNING ───────────────────────────────────────
+
+model Resource {
+  id       String           @id @default(cuid())
+  name     String
+  category ResourceCategory
+  unit     String           // "persons", "pieces", "kg", "litres"
+
+  menuItemResources MenuItemResource[]
+  bookingResources  BookingResource[]
+
+  @@unique([name, category])
+  @@map("resources")
+}
+
+model MenuItemResource {
+  id               String @id @default(cuid())
+  quantityPerGuest Float  // e.g. 0.05 kg per guest
+
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id])
+
+  @@unique([menuItemId, resourceId])
+  @@map("menu_item_resources")
+}
+
+model BookingResource {
+  id               String           @id @default(cuid())
+  calculatedQty    Float
+  manualQty        Float?
+  isManuallyEdited Boolean          @default(false)
+  category         ResourceCategory
+
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id])
+
+  @@unique([bookingId, resourceId])
+  @@index([bookingId])
+  @@map("booking_resources")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────
 
 enum Role {
   OWNER
@@ -98,459 +521,4 @@ enum ResourceCategory {
   FURNITURE
   FOOD
   OTHER
-}
-
-// ─── ORGANIZATION ────────────────────────────────────────────
-
-model Branch {
-  id        String   @id @default(cuid())
-  name      String
-  address   String
-  city      String
-  phone     String
-  email     String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  users           User[]
-  halls           Hall[]
-  leads           Lead[]
-  bookings        Booking[]
-  events          Event[]
-  invoices        Invoice[]
-  inventoryItems  InventoryItem[]
-  purchaseOrders  PurchaseOrder[]
-  menuItems       MenuItem[]
-  vendors         Vendor[]
-
-  @@map("branches")
-}
-
-model User {
-  id           String   @id @default(cuid())
-  authId       String   @unique // kept for backward compat, auto-generated on signup
-  email        String   @unique
-  passwordHash String?  // bcrypt hash — null for legacy/demo users
-  name         String
-  phone        String?
-  role         Role
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Branch association (null for OWNER who sees all)
-  branchId String?
-  branch   Branch? @relation(fields: [branchId], references: [id])
-
-  // Relations
-  assignedLeads  Lead[]    @relation("AssignedLeads")
-  createdLeads   Lead[]    @relation("CreatedLeads")
-  leadActivities LeadActivity[]
-  createdBookings Booking[] @relation("CreatedBookings")
-  payments       Payment[]
-
-  @@index([branchId])
-  @@index([role])
-  @@map("users")
-}
-
-// ─── HALLS / VENUES ──────────────────────────────────────────
-
-model Hall {
-  id            String   @id @default(cuid())
-  name          String
-  capacity      Int
-  pricePerEvent Float
-  amenities     String[] // e.g. ["AC", "Stage", "Parking"]
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
-  bookings Booking[]
-
-  @@index([branchId])
-  @@map("halls")
-}
-
-// ─── LEAD MANAGEMENT ─────────────────────────────────────────
-
-model Lead {
-  id             String     @id @default(cuid())
-  customerName   String
-  customerPhone  String
-  customerEmail  String?
-  eventType      String     // e.g. "Wedding", "Corporate", "Birthday"
-  eventDate      DateTime?
-  guestCount     Int?
-  status         LeadStatus @default(CALL)
-  source         String?    // e.g. "Walk-in", "Website", "Referral"
-  notes          String?
-  lostReason     String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  branchId     String
-  branch       Branch @relation(fields: [branchId], references: [id])
-  assignedToId String
-  assignedTo   User   @relation("AssignedLeads", fields: [assignedToId], references: [id])
-  createdById  String
-  createdBy    User   @relation("CreatedLeads", fields: [createdById], references: [id])
-
-  // Relations
-  activities LeadActivity[]
-  booking    Booking?
-
-  @@index([branchId, status])
-  @@index([branchId, assignedToId])
-  @@map("leads")
-}
-
-model LeadActivity {
-  id        String   @id @default(cuid())
-  action    String   // e.g. "Status changed to VISIT", "Note added"
-  details   String?
-  createdAt DateTime @default(now())
-
-  leadId String
-  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@index([leadId])
-  @@map("lead_activities")
-}
-
-// ─── BOOKINGS ────────────────────────────────────────────────
-
-model Booking {
-  id            String        @id @default(cuid())
-  bookingNumber String        @unique // e.g. "BK-2026-001"
-  startDate     DateTime
-  endDate       DateTime
-  startTime     String        // "14:00"
-  endTime       String        // "22:00"
-  guestCount    Int
-  status        BookingStatus @default(TENTATIVE)
-  totalAmount   Float
-  advanceAmount Float         @default(0)
-  balanceAmount Float
-  notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  branchId    String
-  branch      Branch @relation(fields: [branchId], references: [id])
-  hallId      String
-  hall        Hall   @relation(fields: [hallId], references: [id])
-  leadId      String @unique
-  lead        Lead   @relation(fields: [leadId], references: [id])
-  createdById String
-  createdBy   User   @relation("CreatedBookings", fields: [createdById], references: [id])
-
-  // Relations
-  event            Event?
-  invoice          Invoice?
-  bookingResources BookingResource[]
-
-  // Composite index for conflict detection
-  @@index([branchId, hallId, startDate, endDate])
-  @@map("bookings")
-}
-
-// ─── EVENTS ──────────────────────────────────────────────────
-
-model Event {
-  id         String      @id @default(cuid())
-  eventDate  DateTime
-  guestCount Int
-  status     EventStatus @default(UPCOMING)
-  notes      String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-
-  branchId  String
-  branch    Branch  @relation(fields: [branchId], references: [id])
-  bookingId String  @unique
-  booking   Booking @relation(fields: [bookingId], references: [id])
-
-  // Relations
-  menuSelections  EventMenuItem[]
-  vendorBookings  EventVendor[]
-  checklist       EventChecklist[]
-  stockDeductions StockMovement[]
-
-  @@index([branchId, eventDate])
-  @@map("events")
-}
-
-model EventMenuItem {
-  id       String @id @default(cuid())
-  quantity Int    // servings requested
-
-  eventId    String
-  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
-
-  @@unique([eventId, menuItemId])
-  @@map("event_menu_items")
-}
-
-model EventVendor {
-  id        String  @id @default(cuid())
-  service   String  // "Decoration", "DJ", "Photography"
-  cost      Float
-  notes     String?
-
-  eventId  String
-  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  vendorId String
-  vendor   Vendor @relation(fields: [vendorId], references: [id])
-
-  @@map("event_vendors")
-}
-
-model EventChecklist {
-  id     String              @id @default(cuid())
-  task   String
-  status ChecklistItemStatus @default(PENDING)
-  dueDate DateTime?
-  completedAt DateTime?
-
-  eventId String
-  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  @@map("event_checklists")
-}
-
-// ─── MENU & INGREDIENTS ──────────────────────────────────────
-
-model MenuItem {
-  id          String  @id @default(cuid())
-  name        String
-  category    String  // "Starter", "Main Course", "Dessert", "Beverage"
-  pricePerPlate Float
-  isVeg       Boolean @default(true)
-  isActive    Boolean @default(true)
-
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
-  // Relations
-  ingredients      MenuItemIngredient[]
-  eventMenuItems   EventMenuItem[]
-  menuItemResources MenuItemResource[]
-
-  @@index([branchId])
-  @@map("menu_items")
-}
-
-model MenuItemIngredient {
-  id                 String @id @default(cuid())
-  quantityPerServing Float  // e.g. 0.2 kg per plate
-  unit               String // "kg", "litre", "pieces"
-
-  menuItemId      String
-  menuItem        MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  inventoryItemId String
-  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
-
-  @@unique([menuItemId, inventoryItemId])
-  @@map("menu_item_ingredients")
-}
-
-// ─── INVENTORY ───────────────────────────────────────────────
-
-model InventoryItem {
-  id             String  @id @default(cuid())
-  name           String
-  category       String  // "Vegetable", "Spice", "Dairy", "Grain"
-  unit           String  // "kg", "litre", "pieces"
-  currentStock   Float   @default(0)
-  minStockLevel  Float   @default(0) // Low stock alert threshold
-  costPerUnit    Float   @default(0)
-  isActive       Boolean @default(true)
-
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
-  // Relations
-  menuItemIngredients MenuItemIngredient[]
-  stockMovements      StockMovement[]
-  purchaseOrderItems  PurchaseOrderItem[]
-
-  @@index([branchId, currentStock])
-  @@map("inventory_items")
-}
-
-model StockMovement {
-  id        String            @id @default(cuid())
-  type      StockMovementType
-  quantity  Float
-  notes     String?
-  createdAt DateTime          @default(now())
-
-  inventoryItemId String
-  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
-  eventId         String?       // If deduction is event-based
-  event           Event?        @relation(fields: [eventId], references: [id])
-
-  @@index([inventoryItemId, createdAt])
-  @@map("stock_movements")
-}
-
-// ─── VENDORS ─────────────────────────────────────────────────
-
-model Vendor {
-  id        String   @id @default(cuid())
-  name      String
-  service   String   // "Catering Supplies", "Decoration", "Sound"
-  phone     String
-  email     String?
-  address   String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
-  eventVendors       EventVendor[]
-  purchaseOrders     PurchaseOrder[]
-
-  @@index([branchId])
-  @@map("vendors")
-}
-
-// ─── PURCHASE ORDERS ─────────────────────────────────────────
-
-model PurchaseOrder {
-  id          String              @id @default(cuid())
-  orderNumber String              @unique
-  status      PurchaseOrderStatus @default(DRAFT)
-  totalAmount Float               @default(0)
-  notes       String?
-  orderedAt   DateTime?
-  receivedAt  DateTime?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-  vendorId String
-  vendor   Vendor @relation(fields: [vendorId], references: [id])
-
-  items PurchaseOrderItem[]
-
-  @@index([branchId])
-  @@map("purchase_orders")
-}
-
-model PurchaseOrderItem {
-  id               String @id @default(cuid())
-  quantity         Float
-  unitPrice        Float
-  receivedQuantity Float  @default(0)
-
-  purchaseOrderId String
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  inventoryItemId String
-  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
-
-  @@map("purchase_order_items")
-}
-
-// ─── BILLING & PAYMENTS ──────────────────────────────────────
-
-model Invoice {
-  id            String        @id @default(cuid())
-  invoiceNumber String        @unique // "INV-2026-001"
-  subtotal      Float
-  taxRate       Float         @default(18) // GST percentage
-  taxAmount     Float
-  totalAmount   Float
-  paidAmount    Float         @default(0)
-  dueDate       DateTime
-  status        InvoiceStatus @default(DRAFT)
-  notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  branchId  String
-  branch    Branch  @relation(fields: [branchId], references: [id])
-  bookingId String  @unique
-  booking   Booking @relation(fields: [bookingId], references: [id])
-
-  payments Payment[]
-
-  @@index([branchId, status])
-  @@map("invoices")
-}
-
-model Payment {
-  id            String        @id @default(cuid())
-  amount        Float
-  method        PaymentMethod
-  type          PaymentType
-  referenceNo   String?       // Cheque no, transaction ID, etc.
-  notes         String?
-  paidAt        DateTime      @default(now())
-  createdAt     DateTime      @default(now())
-
-  invoiceId   String
-  invoice     Invoice @relation(fields: [invoiceId], references: [id])
-  receivedById String
-  receivedBy   User    @relation(fields: [receivedById], references: [id])
-
-  @@index([invoiceId])
-  @@map("payments")
-}
-
-// ─── RESOURCE PLANNING ───────────────────────────────────────
-
-model Resource {
-  id       String           @id @default(cuid())
-  name     String
-  category ResourceCategory
-  unit     String           // "persons", "pieces", "kg", "litres"
-
-  menuItemResources MenuItemResource[]
-  bookingResources  BookingResource[]
-
-  @@unique([name, category])
-  @@map("resources")
-}
-
-model MenuItemResource {
-  id               String @id @default(cuid())
-  quantityPerGuest Float  // e.g. 0.05 kg per guest
-
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  resourceId String
-  resource   Resource @relation(fields: [resourceId], references: [id])
-
-  @@unique([menuItemId, resourceId])
-  @@map("menu_item_resources")
-}
-
-model BookingResource {
-  id               String           @id @default(cuid())
-  calculatedQty    Float
-  manualQty        Float?
-  isManuallyEdited Boolean          @default(false)
-  category         ResourceCategory
-
-  bookingId  String
-  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  resourceId String
-  resource   Resource @relation(fields: [resourceId], references: [id])
-
-  @@unique([bookingId, resourceId])
-  @@index([bookingId])
-  @@map("booking_resources")
 }

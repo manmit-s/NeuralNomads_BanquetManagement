@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "../../prisma/generated-client";
 
 // Authenticated user attached to req.user by auth middleware
 export interface AuthUser {

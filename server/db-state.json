@@ -1,0 +1,188 @@
+{
+  "branches": [
+    {
+      "id": "89cb367b-e4c5-4f71-93b6-be3df7ee93c7",
+      "name": "Main Branch",
+      "address": "123 Main St",
+      "city": "Mumbai",
+      "phone": "9876543210",
+      "email": "main@eventora.com",
+      "isActive": true,
+      "createdAt": "2026-02-28T14:35:51.137",
+      "updatedAt": "2026-02-28T14:35:51.138"
+    },
+    {
+      "id": "cmm72bdjt0000u1m4mwp1bi5y",
+      "name": "Delhi Branch",
+      "address": "Delhi City Center",
+      "city": "Delhi",
+      "phone": "0000000000",
+      "email": "delhi@example.com",
+      "isActive": true,
+      "createdAt": "2026-03-01T01:19:34.744",
+      "updatedAt": "2026-03-01T01:19:34.744"
+    },
+    {
+      "id": "cmm72bdsm0001u1m4e7fmkc8t",
+      "name": "Pune Branch",
+      "address": "Pune City Center",
+      "city": "Pune",
+      "phone": "0000000000",
+      "email": "pune@example.com",
+      "isActive": true,
+      "createdAt": "2026-03-01T01:19:35.062",
+      "updatedAt": "2026-03-01T01:19:35.062"
+    }
+  ],
+  "halls": [
+    {
+      "id": "cmm6wh4ay0005ngfw85q56rzo",
+      "name": "Grand Ballroom",
+      "capacity": 500,
+      "pricePerEvent": 100000,
+      "amenities": [
+        "AC",
+        "Stage",
+        "Parking"
+      ],
+      "isActive": true,
+      "createdAt": "2026-02-28T22:36:05.002",
+      "updatedAt": "2026-02-28T22:36:05.002",
+      "branchId": "89cb367b-e4c5-4f71-93b6-be3df7ee93c7"
+    },
+    {
+      "id": "cmm72lfw80000u1wgq1rmton2",
+      "name": "Delhi Grand Ballroom",
+      "capacity": 500,
+      "pricePerEvent": 50000,
+      "amenities": [
+        "AC",
+        "Stage",
+        "Projector"
+      ],
+      "isActive": true,
+      "createdAt": "2026-03-01T01:27:24.342",
+      "updatedAt": "2026-03-01T01:27:24.342",
+      "branchId": "cmm72bdjt0000u1m4mwp1bi5y"
+    },
+    {
+      "id": "cmm72lfwe0001u1wgtmkqfnkw",
+      "name": "Delhi Terrace Lounge",
+      "capacity": 150,
+      "pricePerEvent": 20000,
+      "amenities": [
+        "Open Air",
+        "Bar",
+        "Music"
+      ],
+      "isActive": true,
+      "createdAt": "2026-03-01T01:27:24.342",
+      "updatedAt": "2026-03-01T01:27:24.342",
+      "branchId": "cmm72bdjt0000u1m4mwp1bi5y"
+    },
+    {
+      "id": "cmm72lh3i0004u1wgqptpzcqe",
+      "name": "Pune Grand Ballroom",
+      "capacity": 500,
+      "pricePerEvent": 50000,
+      "amenities": [
+        "AC",
+        "Stage",
+        "Projector"
+      ],
+      "isActive": true,
+      "createdAt": "2026-03-01T01:27:25.902",
+      "updatedAt": "2026-03-01T01:27:25.902",
+      "branchId": "cmm72bdsm0001u1m4e7fmkc8t"
+    },
+    {
+      "id": "cmm72lh3i0005u1wg3b3vhjso",
+      "name": "Pune Terrace Lounge",
+      "capacity": 150,
+      "pricePerEvent": 20000,
+      "amenities": [
+        "Open Air",
+        "Bar",
+        "Music"
+      ],
+      "isActive": true,
+      "createdAt": "2026-03-01T01:27:25.902",
+      "updatedAt": "2026-03-01T01:27:25.902",
+      "branchId": "cmm72bdsm0001u1m4e7fmkc8t"
+    }
+  ],
+  "leads": [
+    {
+      "id": "cmm71oqrt0001u174frz5bn1w",
+      "customerName": "gfyyh",
+      "customerPhone": "76568976889",
+      "customerEmail": "1@gmail.com",
+      "eventType": "Wedding",
+      "eventDate": "2026-04-02T00:00:00",
+      "guestCount": 100,
+      "status": "CALL",
+      "source": null,
+      "notes": "hi",
+      "lostReason": null,
+      "createdAt": "2026-03-01T01:01:58.781",
+      "updatedAt": "2026-03-01T01:01:58.781",
+      "branchId": "89cb367b-e4c5-4f71-93b6-be3df7ee93c7",
+      "assignedToId": "cmm711y890001u1nsxtjibh8m",
+      "createdById": "cmm711y890001u1nsxtjibh8m"
+    },
+    {
+      "id": "cmm71oubm0005u1748watoud6",
+      "customerName": "gfyyh",
+      "customerPhone": "76568976889",
+      "customerEmail": "1@gmail.com",
+      "eventType": "Wedding",
+      "eventDate": "2026-04-02T00:00:00",
+      "guestCount": 100,
+      "status": "LOST",
+      "source": null,
+      "notes": "hi",
+      "lostReason": null,
+      "createdAt": "2026-03-01T01:02:03.394",
+      "updatedAt": "2026-03-01T01:02:17.934",
+      "branchId": "89cb367b-e4c5-4f71-93b6-be3df7ee93c7",
+      "assignedToId": "cmm711y890001u1nsxtjibh8m",
+      "createdById": "cmm711y890001u1nsxtjibh8m"
+    },
+    {
+      "id": "cmm72lgqd0003u1wgddcx7gnv",
+      "customerName": "Test Customer Delhi",
+      "customerPhone": "9000000000",
+      "customerEmail": "customer.delhi@example.com",
+      "eventType": "Wedding",
+      "eventDate": null,
+      "guestCount": null,
+      "status": "CALL",
+      "source": null,
+      "notes": null,
+      "lostReason": null,
+      "createdAt": "2026-03-01T01:27:25.425",
+      "updatedAt": "2026-03-01T01:27:25.425",
+      "branchId": "cmm72bdjt0000u1m4mwp1bi5y",
+      "assignedToId": "cmm6wg4o40001ngfwuobjx2yu",
+      "createdById": "cmm6wg4o40001ngfwuobjx2yu"
+    },
+    {
+      "id": "cmm72lhkw0007u1wgkv3kt4hc",
+      "customerName": "Test Customer Pune",
+      "customerPhone": "9000000000",
+      "customerEmail": "customer.pune@example.com",
+      "eventType": "Wedding",
+      "eventDate": null,
+      "guestCount": null,
+      "status": "CALL",
+      "source": null,
+      "notes": null,
+      "lostReason": null,
+      "createdAt": "2026-03-01T01:27:26.528",
+      "updatedAt": "2026-03-01T01:27:26.528",
+      "branchId": "cmm72bdsm0001u1m4e7fmkc8t",
+      "assignedToId": "cmm6wg4o40001ngfwuobjx2yu",
+      "createdById": "cmm6wg4o40001ngfwuobjx2yu"
+    }
+  ]
+}

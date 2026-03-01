@@ -17,12 +17,30 @@ import { normalizeInventory } from "@/lib/normalizers";
 import { useBranchStore } from "@/stores/branchStore";
 import toast from "react-hot-toast";
 
-export default function InventoryPage() {
-    const { data: apiItems } = useApiWithFallback<DemoInventoryItem[]>("/inventory", DEMO_INVENTORY, { transform: normalizeInventory });
-    const [items, setItems] = useState<DemoInventoryItem[]>(apiItems);
+interface InventoryItem {
+    id: string;
+    name: string;
+    category: string;
+    currentStock: number;
+    minStockLevel: number;
+    unit: string;
+    costPerUnit: number;
+    lastRestocked?: string;
+    branchId?: string;
+}
 
-    // Sync when API data arrives
-    useEffect(() => { setItems(apiItems); }, [apiItems]);
+export default function InventoryPage() {
+    const { selectedBranchId } = useBranchStore();
+    const { data: apiItems, loading, error, refresh } = useApiWithFallback<InventoryItem[]>("/inventory", DEMO_INVENTORY, {
+        transform: normalizeInventory,
+        params: selectedBranchId ? { branchId: selectedBranchId } : {}
+    });
+    const [items, setItems] = useState<InventoryItem[]>(apiItems as any);
+
+    useEffect(() => {
+        if (apiItems) setItems(apiItems as any);
+    }, [apiItems]);
+
     const [search, setSearch] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [filter, setFilter] = useState<"all" | "low">("all");
@@ -31,40 +49,28 @@ export default function InventoryPage() {
         name: "",
         category: "Crockery",
         currentStock: "",
-        minimumStock: "",
+        minStockLevel: "",
         unit: "pcs",
         costPerUnit: "",
     });
 
-    const filtered = items
-        .filter((i) => (filter === "low" ? i.currentStock < i.minimumStock : true))
-        .filter((i) =>
-            search
-                ? i.name.toLowerCase().includes(search.toLowerCase()) ||
-                i.category.toLowerCase().includes(search.toLowerCase())
-                : true
-        );
-
-    const lowStockCount = items.filter((i) => i.currentStock < i.minimumStock).length;
-    const totalValue = items.reduce((sum, i) => sum + i.currentStock * i.costPerUnit, 0);
-
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        const { selectedBranchId } = useBranchStore.getState();
-        const newItem: DemoInventoryItem = {
-            id: `demo-inv-${Date.now()}`,
-            name: form.name,
-            category: form.category,
-            currentStock: parseInt(form.currentStock),
-            minimumStock: parseInt(form.minimumStock),
-            unit: form.unit,
-            costPerUnit: parseFloat(form.costPerUnit),
-            branchId: selectedBranchId || "demo-001",
-        };
-        setItems((prev) => [newItem, ...prev]);
-        toast.success("Item added!");
-        setShowModal(false);
-        setForm({ name: "", category: "Crockery", currentStock: "", minimumStock: "", unit: "pcs", costPerUnit: "" });
+        try {
+            await api.post("/inventory", {
+                ...form,
+                branchId: selectedBranchId || "demo-001",
+                currentStock: parseInt(form.currentStock),
+                minStockLevel: parseInt(form.minStockLevel),
+                costPerUnit: parseFloat(form.costPerUnit),
+            });
+            toast.success("Item added!");
+            setShowModal(false);
+            setForm({ name: "", category: "Crockery", currentStock: "", minStockLevel: "", unit: "pcs", costPerUnit: "" });
+            refresh();
+        } catch {
+            toast.error("Failed to add item");
+        }
     };
 
     return (
@@ -174,10 +180,10 @@ export default function InventoryPage() {
                         </thead>
                         <tbody>
                             {filtered.map((item, i) => {
-                                const isLow = item.currentStock < item.minimumStock;
+                                const isLow = item.currentStock < item.minStockLevel;
                                 const stockPercent = Math.min(
                                     100,
-                                    Math.round((item.currentStock / item.minimumStock) * 100)
+                                    Math.round((item.currentStock / item.minStockLevel) * 100)
                                 );
 
                                 return (
@@ -203,7 +209,7 @@ export default function InventoryPage() {
                                             <span className="text-xs text-muted ml-1">{item.unit}</span>
                                         </td>
                                         <td className="px-5 py-4 text-center text-sm text-muted">
-                                            {item.minimumStock}
+                                            {item.minStockLevel}
                                         </td>
                                         <td className="px-5 py-4 text-right text-sm text-muted">
                                             {formatCurrency(item.costPerUnit)}
@@ -282,8 +288,8 @@ export default function InventoryPage() {
                             <input
                                 className="input-dark"
                                 type="number"
-                                value={form.minimumStock}
-                                onChange={(e) => setForm({ ...form, minimumStock: e.target.value })}
+                                value={form.minStockLevel}
+                                onChange={(e) => setForm({ ...form, minStockLevel: e.target.value })}
                                 required
                             />
                         </div>

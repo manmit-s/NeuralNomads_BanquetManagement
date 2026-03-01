@@ -36,4 +36,18 @@ export class BranchController {
             res.json({ success: true, message: "Branch deactivated" });
         } catch (error) { next(error); }
     }
+
+    static async analyzeSentiment(req: Request, res: Response, next: NextFunction) {
+        try {
+            const results = await BranchService.analyzeSentiment(req.params.id as string);
+            res.json({ success: true, data: results });
+        } catch (error) { next(error); }
+    }
+
+    static async getSentiment(req: Request, res: Response, next: NextFunction) {
+        try {
+            const sentiment = await BranchService.getLatestSentiment(req.params.id as string);
+            res.json({ success: true, data: sentiment });
+        } catch (error) { next(error); }
+    }
 }

@@ -1,0 +1,53 @@
+﻿node.exe : warn The 
+configuration 
+property 
+`package.json#prisma` 
+is deprecated and 
+will be removed in 
+Prisma 7. Please 
+migrate to a Prisma 
+config file (e.g., 
+`prisma.config.ts`).
+At line:1 char:1
++ & "C:\Program Files\
+nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (warn The c   
+ onfig...ma.config    
+.ts`).:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+For more information, 
+see: https://pris.ly/p
+risma-config
+
+Environment variables 
+loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+Error: 
+EPERM: operation not 
+permitted, rename 'C:\
+Users\Vedant\Downloads
+\hack\NeuralNomads_PS3
+\server\node_modules\.
+prisma\client\query_en
+gine-windows.dll.node.
+tmp10776' -> 'C:\Users
+\Vedant\Downloads\hack
+\NeuralNomads_PS3\serv
+er\node_modules\.prism
+a\client\query_engine-
+windows.dll.node'
+
+

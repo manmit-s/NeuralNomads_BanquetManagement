@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { AppError, NotFoundError } from "../utils/errors.js";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "../../prisma/generated-client";
 
 export class InventoryService {
     // ── CRUD ─────────────────────────────────────────────

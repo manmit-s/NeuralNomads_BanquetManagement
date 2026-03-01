@@ -17,16 +17,16 @@ api.interceptors.request.use((config) => {
 });
 
 // ── Response interceptor: handle 401 ──
+// NOTE: Do NOT do window.location.href = "/login" here!
+// That causes a full page reload which destroys Zustand state and creates
+// an infinite redirect loop. Instead, just clear tokens and let React
+// Router's ProtectedRoute handle the redirect naturally.
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
             localStorage.removeItem("access_token");
-            // Only redirect if not already on login/signup
-            const path = window.location.pathname;
-            if (path !== "/login" && path !== "/signup") {
-                window.location.href = "/login";
-            }
+            localStorage.removeItem("refresh_token");
         }
         return Promise.reject(error);
     }

@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
-import type { ResourceCategory } from "@prisma/client";
+import type { ResourceCategory } from "../../prisma/generated-client";
 
 interface CalculatedResource {
     resourceId: string;
@@ -36,7 +36,7 @@ export class ResourceService {
             include: {
                 event: {
                     include: {
-                        menuSelections: {
+                        menuItems: {
                             include: {
                                 menuItem: {
                                     include: {
@@ -59,8 +59,8 @@ export class ResourceService {
         // ── 2. Calculate menu-based resources ──
         const resourceMap = new Map<string, CalculatedResource>();
 
-        if (booking.event?.menuSelections) {
-            for (const selection of booking.event.menuSelections) {
+        if (booking.event?.menuItems) {
+            for (const selection of booking.event.menuItems) {
                 if (!selection.menuItem.menuItemResources) continue;
                 for (const mir of selection.menuItem.menuItemResources) {
                     const existing = resourceMap.get(mir.resourceId);

@@ -63,14 +63,14 @@ export const updateHallSchema = createHallSchema.partial();
 export const createLeadSchema = z.object({
     customerName: z.string().min(2),
     customerPhone: z.string().min(10),
-    customerEmail: z.string().email().optional(),
+    customerEmail: z.string().email().optional().or(z.literal("")),
     eventType: z.string().min(2),
-    eventDate: z.string().datetime().optional(),
+    eventDate: z.string().optional().or(z.literal("")),
     guestCount: z.number().int().positive().optional(),
     source: z.string().optional(),
-    notes: z.string().optional(),
-    branchId: z.string(),
-    assignedToId: z.string().optional(),
+    notes: z.string().optional().or(z.literal("")),
+    branchId: z.string().optional().or(z.literal("")),
+    assignedToId: z.string().optional().or(z.literal("")),
 });
 
 export const updateLeadSchema = z.object({
@@ -95,13 +95,13 @@ export const updateLeadSchema = z.object({
 
 export const createBookingSchema = z.object({
     startDate: z.string().datetime(),
-    endDate: z.string().datetime(),
+    endDate: z.string().optional().or(z.literal("")),
     startTime: z.string().regex(/^\d{2}:\d{2}$/),
     endTime: z.string().regex(/^\d{2}:\d{2}$/),
-    guestCount: z.number().int().positive(),
+    guestCount: z.number().int().positive().optional(),
     hallId: z.string(),
     leadId: z.string(),
-    branchId: z.string(),
+    branchId: z.string().optional().or(z.literal("")),
     totalAmount: z.number().positive(),
     advanceAmount: z.number().nonnegative().default(0),
     notes: z.string().optional(),
@@ -178,7 +178,7 @@ export const createInventoryItemSchema = z.object({
     currentStock: z.number().nonnegative().default(0),
     minStockLevel: z.number().nonnegative().default(0),
     costPerUnit: z.number().nonnegative().default(0),
-    branchId: z.string(),
+    branchId: z.string().optional(),
 });
 
 export const updateInventoryItemSchema = createInventoryItemSchema.partial();

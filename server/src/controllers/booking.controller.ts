@@ -29,7 +29,30 @@ export class BookingController {
 
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
-            const booking = await BookingService.create(req.body, req.user!.id);
+            console.log("[BookingController.create] User:", req.user?.id, "Body:", JSON.stringify(req.body, null, 2));
+            const body = { ...req.body };
+
+            // Auto-assign branchId if not provided
+            if (!body.branchId || body.branchId === "") {
+                if (req.user!.branchId) {
+                    body.branchId = req.user!.branchId;
+                } else {
+                    // OWNER with no branch — find a default branch
+                    const { supabaseAdmin } = await import("../lib/supabase.js");
+                    const { data: branches } = await supabaseAdmin
+                        .from("branches")
+                        .select("id")
+                        .limit(1);
+
+                    if (branches && branches.length > 0) {
+                        body.branchId = branches[0].id;
+                    } else {
+                        throw new Error("No branch available to assign booking");
+                    }
+                }
+            }
+
+            const booking = await BookingService.create(body, req.user!.id);
             res.status(201).json({ success: true, data: booking });
         } catch (error) { next(error); }
     }

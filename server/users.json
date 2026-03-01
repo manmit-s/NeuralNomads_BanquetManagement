@@ -1,0 +1,54 @@
+[
+  {
+    "id": "cmm6wg4o40001ngfwuobjx2yu",
+    "authId": "bfc9210e-a132-46fe-83e0-c3d6b4923e80",
+    "email": "owner@eventora.com",
+    "name": "Test Owner",
+    "phone": "9876543210",
+    "role": "OWNER",
+    "isActive": true,
+    "createdAt": "2026-02-28T22:35:18.816",
+    "updatedAt": "2026-02-28T22:35:18.816",
+    "branchId": null,
+    "passwordHash": "$2b$10$Di1rMuzlfLd.e7VaWLJ9kO2j9OSTYBcsxc/2v9QEj8x3gkuler1Gu"
+  },
+  {
+    "id": "cmm6wgn9i0003ngfwkv0lf7up",
+    "authId": "ec66a394-a805-469f-9869-17c3b60542f8",
+    "email": "manager@eventora.com",
+    "name": "Mumbai Manager",
+    "phone": null,
+    "role": "BRANCH_MANAGER",
+    "isActive": true,
+    "createdAt": "2026-02-28T22:35:42.918",
+    "updatedAt": "2026-02-28T22:35:42.918",
+    "branchId": "89cb367b-e4c5-4f71-93b6-be3df7ee93c7",
+    "passwordHash": "$2b$10$cc4XzNZiC1CCvqAPpxBwT.EKtuIIpvVDuPvzqQac8EBGWgiDgKEc2"
+  },
+  {
+    "id": "cmm711y890001u1nsxtjibh8m",
+    "authId": "21e09d7c-c0f9-405e-afbd-d28eee6e9994",
+    "email": "61vedant.nikumbh@gmail.com",
+    "name": "fsgrgs",
+    "phone": "4657685783",
+    "role": "OWNER",
+    "isActive": true,
+    "createdAt": "2026-03-01T00:44:15.36",
+    "updatedAt": "2026-03-01T00:44:15.36",
+    "branchId": "89cb367b-e4c5-4f71-93b6-be3df7ee93c7",
+    "passwordHash": "$2b$10$LyJ7c8yvJptazJoWbDLpe.t8eWtwpKs3z2nO3Jx/gBvyE./VY.THa"
+  },
+  {
+    "id": "fb93cca9-b24c-41e3-bf60-d53d13e61d81",
+    "authId": "1007745b-4ee1-4c76-b0a7-149a6ef8bd04",
+    "email": "61vedant.nikumbh@gmail.kjkllj",
+    "name": "njghjncgh",
+    "phone": "44653768342",
+    "role": "OWNER",
+    "isActive": true,
+    "createdAt": "2026-03-01T03:01:35.19",
+    "updatedAt": "2026-03-01T03:01:35.19",
+    "branchId": "cmm72bdsm0001u1m4e7fmkc8t",
+    "passwordHash": null
+  }
+]

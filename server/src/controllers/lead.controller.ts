@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { LeadService } from "../services/lead.service.js";
 import { parsePagination } from "../utils/helpers.js";
+import { supabaseAdmin } from "../lib/supabase.js";
 
 export class LeadController {
     static async getAll(req: Request, res: Response, next: NextFunction) {
@@ -24,7 +25,55 @@ export class LeadController {
 
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
-            const lead = await LeadService.create(req.body, req.user!.id);
+            console.log("[LeadController.create] Incoming Body:", req.body);
+            const body = { ...req.body };
+
+            // Auto-assign the current user if no assignedToId provided or set to "auto"
+            if (!body.assignedToId || body.assignedToId === "" || body.assignedToId === "auto") {
+                body.assignedToId = req.user!.id;
+            }
+
+            // Auto-assign branchId if not provided
+            if (!body.branchId || body.branchId === "") {
+                if (req.user!.branchId) {
+                    body.branchId = req.user!.branchId;
+                } else {
+                    // OWNER with no branch — find or create a default branch
+                    const { data: branches } = await supabaseAdmin
+                        .from("branches")
+                        .select("id")
+                        .limit(1);
+
+                    if (branches && branches.length > 0) {
+                        body.branchId = branches[0].id;
+                    } else {
+                        const { data: newBranch, error: brErr } = await supabaseAdmin
+                            .from("branches")
+                            .insert({
+                                id: crypto.randomUUID(),
+                                name: "Main Branch",
+                                address: "Default Address",
+                                city: "Default City",
+                                phone: "0000000000",
+                                email: "branch@eventora.com",
+                                isActive: true,
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString(),
+                            })
+                            .select()
+                            .single();
+
+                        if (brErr) {
+                            console.error("Failed to create default branch:", brErr);
+                            const errMsg = typeof brErr === 'string' ? brErr : JSON.stringify(brErr);
+                            throw new Error(`Failed to create fallback branch: ${errMsg}`);
+                        }
+                        body.branchId = newBranch.id;
+                    }
+                }
+            }
+
+            const lead = await LeadService.create(body, req.user!.id);
             res.status(201).json({ success: true, data: lead });
         } catch (error) { next(error); }
     }

@@ -36,9 +36,9 @@ export class EventController {
      */
     static async finalizeMenu(req: Request, res: Response, next: NextFunction) {
         try {
-            const event = await EventService.findById(req.params.id as string, req.branchScope);
+            const event = await EventService.findById(req.params.id as string, req.branchScope) as any;
 
-            const menuItems = event.menuSelections.map((ms: { menuItemId: string; quantity: number }) => ({
+            const menuItems = (event.menuSelections || []).map((ms: { menuItemId: string; quantity: number }) => ({
                 menuItemId: ms.menuItemId,
                 quantity: ms.quantity,
             }));

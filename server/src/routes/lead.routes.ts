@@ -15,5 +15,6 @@ router.get("/pipeline", authorize("OWNER", "BRANCH_MANAGER", "SALES"), LeadContr
 router.get("/:id", authorize("OWNER", "BRANCH_MANAGER", "SALES"), LeadController.getById);
 router.post("/", authorize("OWNER", "BRANCH_MANAGER", "SALES"), validate(createLeadSchema), LeadController.create);
 router.patch("/:id", authorize("OWNER", "BRANCH_MANAGER", "SALES"), validate(updateLeadSchema), LeadController.update);
+router.put("/:id", authorize("OWNER", "BRANCH_MANAGER", "SALES"), validate(updateLeadSchema), LeadController.update);
 
 export default router;

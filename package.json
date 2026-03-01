@@ -1,0 +1,22 @@
+{
+    "name": "banquet-management-root",
+    "version": "1.0.0",
+    "description": "Root package to manage client and server",
+    "private": true,
+    "scripts": {
+        "install:all": "npm install --prefix client && npm install --prefix server",
+        "dev:server": "npm run dev --prefix server",
+        "dev:client": "npm run dev --prefix client",
+        "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+        "build:client": "npm run build --prefix client",
+        "build:server": "npm run build --prefix server",
+        "prisma:generate": "npm run prisma:generate --prefix server",
+        "prisma:migrate": "npm run prisma:migrate --prefix server",
+        "prisma:push": "npm run prisma:push --prefix server",
+        "prisma:studio": "npm run prisma:studio --prefix server",
+        "prisma:seed": "npm run prisma:seed --prefix server"
+    },
+    "devDependencies": {
+        "concurrently": "^9.1.2"
+    }
+}
