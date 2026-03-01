@@ -6,6 +6,14 @@ from .ai_engine import get_ai_response
 
 app = FastAPI(title="AI Revenue Copilot")
 
+# Register review intelligence router (separate from revenue)
+from .review_routes import router as review_router
+app.include_router(review_router)
+
+# Register branch health intelligence router
+from .health_routes import router as health_router
+app.include_router(health_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

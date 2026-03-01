@@ -8,6 +8,8 @@ import inventoryRoutes from "./inventory.routes.js";
 import billingRoutes from "./billing.routes.js";
 import reportRoutes from "./report.routes.js";
 import aiRevenueRoutes from "./aiRevenue.routes.js";
+import aiReviewRoutes from "./aiReview.routes.js";
+import branchHealthRoutes from "./branchHealth.routes.js";
 
 const router = Router();
 
@@ -20,6 +22,8 @@ router.use("/inventory", inventoryRoutes);
 router.use("/billing", billingRoutes);
 router.use("/reports", reportRoutes);
 router.use("/ai", aiRevenueRoutes);
+router.use("/ai", aiReviewRoutes);
+router.use("/ai", branchHealthRoutes);
 
 // Health check
 router.get("/health", (_req, res) => {

@@ -17,6 +17,9 @@ import BranchesPage from "@/pages/branches/BranchesPage";
 import ReportsPage from "@/pages/reports/ReportsPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import AIRevenuePage from "@/pages/ai-revenue/AIRevenuePage";
+import BillingPage from "@/pages/billing/BillingPage";
+import ReputationPage from "@/pages/reputation/ReputationPage";
+import BranchHealthPage from "@/pages/branch-health/BranchHealthPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuthStore();
@@ -66,6 +69,9 @@ function AppRoutes() {
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/ai-revenue" element={<AIRevenuePage />} />
+                <Route path="/billing" element={<BillingPage />} />
+                <Route path="/reputation" element={<ReputationPage />} />
+                <Route path="/branch-health" element={<BranchHealthPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
