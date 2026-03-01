@@ -129,10 +129,16 @@ export default function AIRevenuePage() {
             const status = err?.response?.status;
             let errorMessage = "AI temporarily unavailable. Please retry.";
 
-            if (status === 429) {
+            if (status === 401) {
+                errorMessage = "Session expired. Please sign in again to use AI features.";
+                // Clear token and redirect to login
+                localStorage.removeItem("access_token");
+                localStorage.removeItem("refresh_token");
+                setTimeout(() => { window.location.href = "/login"; }, 2000);
+            } else if (status === 429) {
                 errorMessage = "AI is temporarily rate-limited. Please wait a few seconds.";
             } else if (status === 500) {
-                errorMessage = "AI temporarily unavailable. Please retry.";
+                errorMessage = "AI service unavailable — ensure the Python AI microservice is running on port 8000.";
             } else if (err?.response?.data?.error) {
                 errorMessage = err.response.data.error;
             }

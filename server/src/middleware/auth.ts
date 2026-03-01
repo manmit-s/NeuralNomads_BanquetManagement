@@ -51,10 +51,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
             .single();
 
         if (dbError || !user || !user.isActive) {
-            throw new UnauthorizedError("User not found or deactivated");
-        }
-
-        if (dbError || !user || !user.isActive) {
+            console.error("Auth middleware: user lookup failed", { dbError, userId: decoded.sub });
             throw new UnauthorizedError("User not found or deactivated");
         }
 
