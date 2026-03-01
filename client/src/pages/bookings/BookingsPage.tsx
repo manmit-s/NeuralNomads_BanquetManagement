@@ -12,7 +12,10 @@ import {
     ChevronRight,
     CheckCircle2,
     XCircle,
+    ClipboardList,
+    Activity,
 } from "lucide-react";
+import ResourceDrawer from "@/components/bookings/ResourceDrawer";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import GlassCard from "@/components/ui/GlassCard";
@@ -33,6 +36,8 @@ export default function BookingsPage() {
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [page, setPage] = useState(1);
     const [updating, setUpdating] = useState(false);
+    const [resourceBookingId, setResourceBookingId] = useState<string | null>(null);
+    const [resourceDrawerOpen, setResourceDrawerOpen] = useState(false);
     const limit = 15;
 
     const handleStatusChange = async (bookingId: string, newStatus: string) => {
@@ -157,6 +162,46 @@ export default function BookingsPage() {
                                                         {booking.customerName}
                                                     </h3>
                                                     <StatusBadge status={booking.status} />
+                                                    {booking.healthScore !== undefined && (
+                                                        <div className="relative group">
+                                                            <span
+                                                                className={cn(
+                                                                    "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full cursor-default",
+                                                                    booking.healthScore >= 80
+                                                                        ? "bg-green-500/10 text-green-400"
+                                                                        : booking.healthScore >= 60
+                                                                            ? "bg-yellow-500/10 text-yellow-400"
+                                                                            : "bg-red-500/10 text-red-400"
+                                                                )}
+                                                            >
+                                                                <Activity className="h-3 w-3" />
+                                                                {booking.healthScore}% – {booking.healthLabel}
+                                                            </span>
+                                                            {booking.healthBreakdown && (
+                                                                <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover:block w-48 p-2.5 rounded-lg bg-slate-800 border border-white/10 shadow-xl text-[11px] space-y-1">
+                                                                    <p className="text-white font-semibold mb-1.5">Health Breakdown</p>
+                                                                    {([
+                                                                        ["Payment", booking.healthBreakdown.payment, 25],
+                                                                        ["Vendor", booking.healthBreakdown.vendor, 15],
+                                                                        ["Menu", booking.healthBreakdown.menu, 15],
+                                                                        ["Guest Count", booking.healthBreakdown.guest, 10],
+                                                                        ["Stock", booking.healthBreakdown.stock, 20],
+                                                                        ["Follow-ups", booking.healthBreakdown.followUps, 15],
+                                                                    ] as [string, number, number][]).map(([label, val, max]) => (
+                                                                        <div key={label} className="flex items-center justify-between">
+                                                                            <span className="text-muted">{label}</span>
+                                                                            <span className={cn(
+                                                                                "font-medium",
+                                                                                val >= max ? "text-green-400" : val > 0 ? "text-yellow-400" : "text-red-400"
+                                                                            )}>
+                                                                                {val}/{max}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-4 text-xs text-muted">
                                                     <span className="flex items-center gap-1">
@@ -213,14 +258,27 @@ export default function BookingsPage() {
                                                 </div>
                                             )}
                                             {booking.status === "CONFIRMED" && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, "COMPLETED"); }}
-                                                    disabled={updating}
-                                                    className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 transition-all disabled:opacity-50"
-                                                    title="Mark completed"
-                                                >
-                                                    Complete
-                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setResourceBookingId(booking.id);
+                                                            setResourceDrawerOpen(true);
+                                                        }}
+                                                        className="p-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 transition-all"
+                                                        title="Resource Planner"
+                                                    >
+                                                        <ClipboardList className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, "COMPLETED"); }}
+                                                        disabled={updating}
+                                                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 transition-all disabled:opacity-50"
+                                                        title="Mark completed"
+                                                    >
+                                                        Complete
+                                                    </button>
+                                                </div>
                                             )}
 
                                             <button
@@ -279,6 +337,16 @@ export default function BookingsPage() {
                     )}
                 </>
             )}
+
+            <ResourceDrawer
+                bookingId={resourceBookingId}
+                bookingLabel={bookingsData.find((b) => b.id === resourceBookingId)?.bookingNumber}
+                open={resourceDrawerOpen}
+                onClose={() => {
+                    setResourceDrawerOpen(false);
+                    setResourceBookingId(null);
+                }}
+            />
         </div>
     );
 }

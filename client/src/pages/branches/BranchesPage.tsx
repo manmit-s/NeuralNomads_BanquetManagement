@@ -13,13 +13,20 @@ import GlassCard from "@/components/ui/GlassCard";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import { cn, getInitials } from "@/lib/utils";
-import { DEMO_BRANCHES, type DemoBranch } from "@/data/demo";
+import type { Branch } from "@/types";
 import { useApiWithFallback } from "@/lib/useApiWithFallback";
+import api from "@/lib/api";
 import toast from "react-hot-toast";
 
+interface BranchDisplay extends Branch {
+    state?: string;
+    staffCount?: number;
+    hallCount?: number;
+}
+
 export default function BranchesPage() {
-    const { data: apiBranches } = useApiWithFallback<DemoBranch[]>("/branches", DEMO_BRANCHES);
-    const [branches, setBranches] = useState<DemoBranch[]>(apiBranches);
+    const { data: apiBranches, refetch } = useApiWithFallback<BranchDisplay[]>("/branches", []);
+    const [branches, setBranches] = useState<BranchDisplay[]>(apiBranches);
 
     // Sync when API data arrives
     useEffect(() => { setBranches(apiBranches); }, [apiBranches]);
@@ -28,22 +35,21 @@ export default function BranchesPage() {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        const newBranch: DemoBranch = {
-            id: `demo-br-${Date.now()}`,
-            name: form.name,
-            address: form.address,
-            city: form.city,
-            state: form.state,
-            phone: form.phone,
-            email: `${form.name.toLowerCase().replace(/\s/g, "")}@eventora.in`,
-            isActive: true,
-            staffCount: 0,
-            hallCount: 0,
-        };
-        setBranches((prev) => [...prev, newBranch]);
-        toast.success("Branch created!");
-        setShowModal(false);
-        setForm({ name: "", address: "", phone: "", city: "", state: "" });
+        try {
+            await api.post("/branches", {
+                name: form.name,
+                address: form.address,
+                city: form.city,
+                phone: form.phone,
+                email: `${form.name.toLowerCase().replace(/\s/g, "")}@eventora.in`,
+            });
+            toast.success("Branch created!");
+            setShowModal(false);
+            setForm({ name: "", address: "", phone: "", city: "", state: "" });
+            refetch();
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to create branch");
+        }
     };
 
     return (

@@ -6,7 +6,7 @@ interface AuthState {
     user: User | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
-    signUp: (data: { email: string; password: string; name: string; phone?: string; role?: string; branchId?: string }) => Promise<void>;
+    signUp: (data: { email: string; password: string; name: string; phone?: string }) => Promise<void>;
     signOut: () => void;
     loadProfile: () => Promise<void>;
     isOwner: boolean;

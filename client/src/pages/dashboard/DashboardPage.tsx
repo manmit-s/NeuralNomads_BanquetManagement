@@ -10,6 +10,7 @@ import {
     Package,
     ArrowUpRight,
     ArrowDownRight,
+    Loader2,
 } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
 import GlassCard from "@/components/ui/GlassCard";
@@ -18,18 +19,11 @@ import PageHeader from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { useBranchStore } from "@/stores/branchStore";
 import api from "@/lib/api";
-import {
-    DEMO_BRANCH_PERFORMANCE,
-    DEMO_INVENTORY,
-    DEMO_BOOKINGS,
-    DEMO_LEADS,
-    DEMO_HALLS,
-} from "@/data/demo";
 
 export default function DashboardPage() {
     const { selectedBranchId, branches } = useBranchStore();
     const [apiSummary, setApiSummary] = useState<any>(null);
-    const [isDemo, setIsDemo] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [apiBranchPerf, setApiBranchPerf] = useState<any[]>([]);
     const [apiBookings, setApiBookings] = useState<any[]>([]);
     const [apiLeads, setApiLeads] = useState<any[]>([]);
@@ -39,6 +33,7 @@ export default function DashboardPage() {
     useEffect(() => {
         let cancelled = false;
         (async () => {
+            setLoading(true);
             try {
                 const params: Record<string, string> = {};
                 if (selectedBranchId) params.branchId = selectedBranchId;
@@ -54,7 +49,6 @@ export default function DashboardPage() {
                 if (!cancelled) {
                     if (dashRes.status === "fulfilled" && dashRes.value.data?.data) {
                         setApiSummary(dashRes.value.data.data);
-                        setIsDemo(false);
                     }
                     if (branchRes.status === "fulfilled" && branchRes.value.data?.data) {
                         setApiBranchPerf(branchRes.value.data.data);
@@ -73,7 +67,9 @@ export default function DashboardPage() {
                     }
                 }
             } catch {
-                if (!cancelled) setIsDemo(true);
+                // API failed — leave arrays empty
+            } finally {
+                if (!cancelled) setLoading(false);
             }
         })();
         return () => { cancelled = true; };
@@ -87,34 +83,35 @@ export default function DashboardPage() {
     /* ── derive branchId for a booking via its hall ── */
     const hallBranchMap = useMemo(() => {
         const map = new Map<string, string>();
-        DEMO_HALLS.forEach((h) => map.set(h.id, h.branchId));
+        // Build from bookings that include hall data
+        apiBookings.forEach((b: any) => {
+            if (b.hall?.id && b.hall?.branchId) map.set(b.hall.id, b.hall.branchId);
+            if (b.hallId && b.branchId) map.set(b.hallId, b.branchId);
+        });
         return map;
-    }, []);
+    }, [apiBookings]);
 
-    /* ── filtered collections — prefer API data, fallback to demo ── */
+    /* ── filtered collections — real API data only ── */
     const filteredBookings = useMemo(() => {
-        const source = apiBookings.length > 0 ? apiBookings : DEMO_BOOKINGS;
-        if (!selectedBranchId) return source;
-        return source.filter((b: any) =>
+        if (!selectedBranchId) return apiBookings;
+        return apiBookings.filter((b: any) =>
             b.branchId === selectedBranchId || hallBranchMap.get(b.hallId) === selectedBranchId
         );
     }, [selectedBranchId, hallBranchMap, apiBookings]);
 
     const filteredLeads = useMemo(() => {
-        const source = apiLeads.length > 0 ? apiLeads : DEMO_LEADS;
-        if (!selectedBranchId) return source;
-        return source.filter((l: any) => l.branchId === selectedBranchId);
+        if (!selectedBranchId) return apiLeads;
+        return apiLeads.filter((l: any) => l.branchId === selectedBranchId);
     }, [selectedBranchId, apiLeads]);
 
     const filteredInventory = useMemo(() => {
-        const source = apiInventory.length > 0 ? apiInventory : DEMO_INVENTORY;
-        if (!selectedBranchId) return source;
-        return source.filter((i: any) => i.branchId === selectedBranchId);
+        if (!selectedBranchId) return apiInventory;
+        return apiInventory.filter((i: any) => i.branchId === selectedBranchId);
     }, [selectedBranchId, apiInventory]);
 
-    /* ── recompute KPIs — prefer API data, fallback to demo ── */
+    /* ── recompute KPIs — from real data ── */
     const summary = useMemo(() => {
-        if (!isDemo && apiSummary) return apiSummary;
+        if (apiSummary) return apiSummary;
         const confirmed = filteredBookings.filter((b) => b.status === "CONFIRMED");
         const now = new Date();
         const thisMonthLeads = filteredLeads.filter((l) => {
@@ -122,21 +119,20 @@ export default function DashboardPage() {
             return ld.getMonth() === now.getMonth() && ld.getFullYear() === now.getFullYear();
         });
         return {
-            monthlyRevenue: confirmed.reduce((s, b) => s + b.totalAmount, 0),
-            totalOutstanding: filteredBookings.reduce((s, b) => s + b.balanceAmount, 0),
+            monthlyRevenue: confirmed.reduce((s, b) => s + (b.totalAmount || 0), 0),
+            totalOutstanding: filteredBookings.reduce((s, b) => s + (b.balanceAmount || 0), 0),
             totalLeadsThisMonth: thisMonthLeads.length,
             activeBookings: confirmed.length,
             upcomingEvents: filteredBookings.filter(
                 (b) => b.status !== "CANCELLED" && b.status !== "COMPLETED"
             ).length,
         };
-    }, [filteredBookings, filteredLeads, isDemo, apiSummary]);
+    }, [filteredBookings, filteredLeads, apiSummary]);
 
-    /* ── branch performance table — prefer API, fallback to demo ── */
+    /* ── branch performance table — from API only ── */
     const branchData = useMemo(() => {
-        const source = apiBranchPerf.length > 0 ? apiBranchPerf : DEMO_BRANCH_PERFORMANCE;
-        if (!selectedBranchId) return source;
-        return source.filter((b: any) => b.branchId === selectedBranchId);
+        if (!selectedBranchId) return apiBranchPerf;
+        return apiBranchPerf.filter((b: any) => b.branchId === selectedBranchId);
     }, [selectedBranchId, apiBranchPerf]);
 
     /* ── today's events from filtered bookings ── */
@@ -166,6 +162,14 @@ export default function DashboardPage() {
         (i: any) => i.currentStock < (i.minimumStock ?? i.minStockLevel ?? 0)
     ).length;
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="animate-spin text-amber-400" size={32} />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <PageHeader
@@ -178,32 +182,24 @@ export default function DashboardPage() {
                 <KPICard
                     title="Monthly Revenue"
                     value={formatCurrency(summary.monthlyRevenue)}
-                    change="+12.5%"
-                    changeType="positive"
                     icon={DollarSign}
                     iconColor="text-green-400"
                 />
                 <KPICard
                     title="Outstanding"
                     value={formatCurrency(summary.totalOutstanding)}
-                    change="-3.2%"
-                    changeType="negative"
                     icon={AlertTriangle}
                     iconColor="text-red-400"
                 />
                 <KPICard
                     title="Leads This Month"
                     value={String(summary.totalLeadsThisMonth)}
-                    change="+2.1%"
-                    changeType="positive"
                     icon={TrendingUp}
                     iconColor="text-gold-400"
                 />
                 <KPICard
                     title="Active Bookings"
                     value={String(summary.activeBookings)}
-                    change="+5"
-                    changeType="positive"
                     icon={CalendarCheck}
                     iconColor="text-blue-400"
                 />
@@ -324,7 +320,11 @@ export default function DashboardPage() {
                             Today&apos;s Events
                         </h3>
                         <div className="space-y-4">
-                            {todayEvents.map((event, i) => (
+                            {todayEvents.length === 0 ? (
+                                <p className="text-sm text-muted py-4 text-center">
+                                    No events scheduled for today
+                                </p>
+                            ) : todayEvents.map((event, i) => (
                                 <motion.div
                                     key={i}
                                     initial={{ opacity: 0, x: -10 }}

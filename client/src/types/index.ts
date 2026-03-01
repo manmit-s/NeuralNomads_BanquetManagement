@@ -97,6 +97,16 @@ export interface Booking {
     event?: Event;
     invoice?: Invoice;
     createdAt: string;
+    healthScore?: number;
+    healthLabel?: "Healthy" | "Needs Attention" | "High Risk";
+    healthBreakdown?: {
+        payment: number;
+        vendor: number;
+        menu: number;
+        guest: number;
+        stock: number;
+        followUps: number;
+    };
 }
 
 export interface Event {
@@ -210,4 +220,20 @@ export interface DashboardSummary {
 export interface PipelineItem {
     status: LeadStatus;
     count: number;
+}
+
+// ── Resource Planning ────────────────────────────────────────
+
+export type ResourceCategory = "STAFF" | "FURNITURE" | "FOOD" | "OTHER";
+
+export interface BookingResource {
+    id: string;
+    resourceId: string;
+    resourceName: string;
+    category: ResourceCategory;
+    unit: string;
+    calculatedQty: number;
+    manualQty: number | null;
+    isManuallyEdited: boolean;
+    effectiveQty: number;
 }

@@ -11,6 +11,7 @@ import {
     Settings,
     LogOut,
     Sparkles,
+    UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -23,6 +24,7 @@ const navItems = [
     { label: "Calendar", icon: Calendar, path: "/calendar", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
     { label: "Inventory", icon: Package, path: "/inventory", roles: ["OWNER", "BRANCH_MANAGER", "OPERATIONS"] },
     { label: "Reports", icon: BarChart3, path: "/reports", roles: ["OWNER", "BRANCH_MANAGER"] },
+    { label: "Team", icon: UserPlus, path: "/team", roles: ["OWNER"] },
     { label: "Settings", icon: Settings, path: "/settings", roles: ["OWNER"] },
 ];
 

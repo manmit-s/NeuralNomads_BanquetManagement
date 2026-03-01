@@ -2,16 +2,16 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import api from "./api";
 
 /**
- * Hook that tries to fetch data from the real API first.
- * If the API call fails (server down, DB error, etc.), it falls back to demo data.
+ * Hook that fetches data from the real API.
+ * Shows empty state if API returns no data instead of falling back to demo.
  *
  * @param endpoint  API endpoint, e.g. "/branches"
- * @param demoData  Fallback demo data array/object
+ * @param fallback  Default value (used as initial state only)
  * @param options   Optional: extract key from API response, auto-fetch toggle
  */
 export function useApiWithFallback<T>(
     endpoint: string,
-    demoData: T,
+    fallback: T,
     options?: {
         /** key to extract from API response (default: "data") */
         dataKey?: string;
@@ -28,7 +28,8 @@ export function useApiWithFallback<T>(
     const params = options?.params;
     const transform = options?.transform;
 
-    const [data, setData] = useState<T>(demoData);
+    const emptyValue = (Array.isArray(fallback) ? [] : fallback) as T;
+    const [data, setData] = useState<T>(emptyValue);
     const [loading, setLoading] = useState(!manual);
     const [isDemo, setIsDemo] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -45,15 +46,15 @@ export function useApiWithFallback<T>(
                 setData(transform ? transform(apiData) : apiData);
                 setIsDemo(false);
             } else {
-                // API returned empty/null — use demo
-                setData(demoData);
-                setIsDemo(true);
+                // API returned empty/null — show empty state
+                setData(emptyValue);
+                setIsDemo(false);
             }
         } catch (err: any) {
             if (!mountedRef.current) return;
-            console.warn(`[API fallback] ${endpoint} failed, using demo data:`, err.message);
-            setData(demoData);
-            setIsDemo(true);
+            console.warn(`[API] ${endpoint} failed:`, err.message);
+            setData(emptyValue);
+            setIsDemo(false);
             setError(err.message);
         } finally {
             if (mountedRef.current) setLoading(false);

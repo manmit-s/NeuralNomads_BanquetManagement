@@ -24,7 +24,6 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import GlassCard from "@/components/ui/GlassCard";
 import Modal from "@/components/ui/Modal";
 import { cn, formatDate, formatCurrency, getInitials } from "@/lib/utils";
-import { DEMO_BOOKINGS } from "@/data/demo";
 import api from "@/lib/api";
 import { normalizeBooking } from "@/lib/normalizers";
 import type { Booking } from "@/types";
@@ -47,7 +46,7 @@ export default function EventDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [booking, setBooking] = useState<(Booking & { menuItems?: any[]; vendors?: any[]; payments?: any[] }) | null>(null);
 
-    // Try API first, fall back to demo
+    // Fetch booking from API
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -60,10 +59,10 @@ export default function EventDetailsPage() {
                     return;
                 }
             } catch {
-                // API failed — fall back to demo
+                // API failed
             }
             if (!cancelled) {
-                setBooking(DEMO_BOOKINGS.find((b) => b.id === id) || null);
+                setBooking(null);
                 setLoading(false);
             }
         })();

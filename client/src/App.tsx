@@ -18,6 +18,8 @@ import InventoryPage from "@/pages/inventory/InventoryPage";
 import BranchesPage from "@/pages/branches/BranchesPage";
 import ReportsPage from "@/pages/reports/ReportsPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
+import OnboardingPage from "@/pages/onboarding/OnboardingPage";
+import TeamPage from "@/pages/team/TeamPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuthStore();
@@ -42,6 +44,14 @@ function AppRoutes() {
             {/* Public */}
             <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
             <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignupPage />} />
+            <Route
+                path="/onboarding"
+                element={
+                    <ProtectedRoute>
+                        <OnboardingPage />
+                    </ProtectedRoute>
+                }
+            />
 
             {/* Protected — Dashboard Layout */}
             <Route
@@ -61,6 +71,7 @@ function AppRoutes() {
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/team" element={<TeamPage />} />
             </Route>
 
             {/* Fallback */}
