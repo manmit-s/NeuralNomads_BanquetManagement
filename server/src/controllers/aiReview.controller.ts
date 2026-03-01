@@ -10,12 +10,6 @@ export const aiReviewController = async (req: Request, res: Response, _next: Nex
             review_url: req.body.review_url || "",
         };
 
-        if (!payload.review_url) {
-            return res.status(400).json({
-                message: "review_url is required"
-            });
-        }
-
         const result = await callAIReviews(payload);
 
         console.log("[ReviewController] Sending response to frontend...");

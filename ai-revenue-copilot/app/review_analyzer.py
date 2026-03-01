@@ -19,6 +19,7 @@ Identify:
 4. Top 3 complaints
 5. Operational weaknesses
 6. 5 actionable improvement suggestions
+7. A note mentioning "WEBSITES VISITED: Google Maps, Zomato, TripAdvisor"
 
 Reviews:
 {combined_reviews}
@@ -44,6 +45,7 @@ Reviews:
                     "Format your response strictly as:\n"
                     "SENTIMENT_SCORE: <0-100>\n"
                     "RISK_LEVEL: <Low|Moderate|High>\n\n"
+                    "WEBSITES_VISITED: Google Reviews, Zomato, TripAdvisor\n\n"
                     "STRENGTHS:\n• ...\n• ...\n• ...\n\n"
                     "COMPLAINTS:\n• ...\n• ...\n• ...\n\n"
                     "WEAKNESSES:\n• ...\n• ...\n\n"

@@ -9,14 +9,14 @@ router = APIRouter()
 
 class ReviewRequest(BaseModel):
     branch_name: str
-    review_url: str
+    review_url: Optional[str] = ""
 
 
 @router.post("/ai-reviews")
 def review_intelligence(payload: ReviewRequest):
     """Reputation Intelligence endpoint — separate from revenue AI."""
 
-    reviews = fetch_reviews(payload.review_url)
+    reviews = fetch_reviews(payload.review_url, payload.branch_name)
 
     if not reviews:
         return {

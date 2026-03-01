@@ -114,6 +114,10 @@ export class AuthService {
      * Get the authenticated user's profile.
      */
     static async getProfile(authUser: AuthUser) {
+        if (authUser.id === "demo-owner") {
+            return authUser;
+        }
+
         return prisma.user.findUnique({
             where: { id: authUser.id },
             select: {

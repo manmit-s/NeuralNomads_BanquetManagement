@@ -11,7 +11,6 @@ import {
     TrendingUp,
     TrendingDown,
     Star,
-    ExternalLink,
 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import GlassCard from "@/components/ui/GlassCard";
@@ -24,15 +23,48 @@ interface ReviewResult {
     message?: string;
 }
 
+interface Branch {
+    id: string;
+    name: string;
+}
+
 export default function ReputationPage() {
+    const [branches, setBranches] = useState<Branch[]>([]);
     const [branchName, setBranchName] = useState("");
-    const [reviewUrl, setReviewUrl] = useState("");
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<ReviewResult | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isDemo, setIsDemo] = useState(false);
     const isLoadingRef = useRef(false);
     const demoLoadedRef = useRef(false);
+
+    useEffect(() => {
+        const fetchBranches = async () => {
+            try {
+                const res = await api.get("/branches");
+                let dbBranches = res.data?.data || [];
+
+                // Always ensure Main Branch, Delhi Branch, Pune Branch are in the list for Demo purposes
+                const defaultNames = ["Main Branch", "Delhi Branch", "Pune Branch"];
+                const missingNames = defaultNames.filter(name => !dbBranches.some((b: Branch) => b.name === name));
+                const demoBranches = missingNames.map((name, i) => ({ id: `demo-${i}`, name }));
+                const finalBranches = [...dbBranches, ...demoBranches];
+
+                setBranches(finalBranches);
+                setBranchName(finalBranches[0].name);
+            } catch (err) {
+                console.error("Failed to fetch branches:", err);
+                const fallback = [
+                    { id: "demo-0", name: "Main Branch" },
+                    { id: "demo-1", name: "Delhi Branch" },
+                    { id: "demo-2", name: "Pune Branch" }
+                ];
+                setBranches(fallback);
+                setBranchName(fallback[0].name);
+            }
+        };
+        fetchBranches();
+    }, []);
 
     // Auto-load demo analysis on first visit
     useEffect(() => {
@@ -62,7 +94,7 @@ export default function ReputationPage() {
 
     const analyzeReputation = async () => {
         if (isLoadingRef.current) return;
-        if (!branchName.trim() || !reviewUrl.trim()) return;
+        if (!branchName.trim()) return;
 
         isLoadingRef.current = true;
         setLoading(true);
@@ -72,7 +104,7 @@ export default function ReputationPage() {
         try {
             const res = await api.post("/ai/reviews", {
                 branch_name: branchName.trim(),
-                review_url: reviewUrl.trim(),
+                review_url: "",
             });
 
             setResult(res.data);
@@ -125,34 +157,23 @@ export default function ReputationPage() {
             {/* Input Section */}
             <GlassCard className="mb-6">
                 <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                         <div>
-                            <label className="block text-xs font-medium text-muted mb-2">Branch Name</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Downtown Branch"
+                            <label className="block text-xs font-medium text-muted mb-2">Select Branch</label>
+                            <select
                                 value={branchName}
                                 onChange={(e) => setBranchName(e.target.value)}
-                                className="input-dark w-full"
-                            />
-                        </div>
-                        <div className="md:col-span-1">
-                            <label className="block text-xs font-medium text-muted mb-2">Review Page URL</label>
-                            <div className="relative">
-                                <ExternalLink className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
-                                <input
-                                    type="url"
-                                    placeholder="https://google.com/maps/place/..."
-                                    value={reviewUrl}
-                                    onChange={(e) => setReviewUrl(e.target.value)}
-                                    className="input-dark w-full pl-9"
-                                />
-                            </div>
+                                className="input-dark w-full appearance-none"
+                            >
+                                {branches.map((b) => (
+                                    <option key={b.id} value={b.name}>{b.name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="flex items-end">
                             <button
                                 onClick={analyzeReputation}
-                                disabled={loading || !branchName.trim() || !reviewUrl.trim()}
+                                disabled={loading || !branchName.trim()}
                                 className="btn-gold w-full disabled:opacity-50 disabled:hover:scale-100"
                             >
                                 {loading ? (
@@ -218,7 +239,7 @@ export default function ReputationPage() {
                         <div className="bg-gold-500/5 border border-gold-500/20 rounded-xl px-4 py-3 flex items-center gap-2">
                             <Star className="h-4 w-4 text-gold-400" />
                             <p className="text-xs text-gold-400">
-                                Showing demo analysis from sample reviews. Enter a custom URL above to analyze any venue.
+                                Showing demo analysis. Select a branch and click Analyze to process real-time reviews.
                             </p>
                         </div>
                     )}
@@ -307,8 +328,7 @@ export default function ReputationPage() {
                     </div>
                     <h3 className="text-lg font-semibold text-white mb-2">Reputation Intelligence</h3>
                     <p className="text-sm text-muted max-w-md">
-                        Enter a branch name and a public review URL (Google Maps, TripAdvisor, etc.)
-                        to get AI-powered sentiment analysis, risk scoring, and improvement recommendations.
+                        Select a branch to analyze its reputation. The AI will dynamically analyze real reviews from platforms like Zomato and Google Reviews, providing risk scoring and actionable insights.
                     </p>
                 </div>
             )}

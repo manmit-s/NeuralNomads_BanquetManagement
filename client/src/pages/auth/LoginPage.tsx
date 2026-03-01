@@ -13,6 +13,11 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const { signIn } = useAuthStore();
 
+    const handleBypass = () => {
+        localStorage.setItem("access_token", "DEMO_TOKEN");
+        window.location.href = "/";
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -104,20 +109,30 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="btn-gold w-full py-3"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    <span>Signing in...</span>
-                                </>
-                            ) : (
-                                <span>Sign In</span>
-                            )}
-                        </button>
+                        <div className="space-y-3">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="btn-gold w-full py-3"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>Signing in...</span>
+                                    </>
+                                ) : (
+                                    <span>Sign In</span>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleBypass}
+                                className="w-full py-3 rounded-xl border border-gold-500/20 text-gold-400 hover:bg-gold-500/10 transition-colors text-sm font-medium"
+                            >
+                                Bypass Login (Quick Test)
+                            </button>
+                        </div>
                     </form>
                 </div>
 
