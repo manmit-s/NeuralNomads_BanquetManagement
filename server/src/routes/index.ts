@@ -1,6 +1,8 @@
 import { Router } from "express";
 import authRoutes from "./auth.routes.js";
 import branchRoutes from "./branch.routes.js";
+import userRoutes from "./user.routes.js";
+import hallRoutes from "./hall.routes.js";
 import leadRoutes from "./lead.routes.js";
 import bookingRoutes from "./booking.routes.js";
 import eventRoutes from "./event.routes.js";
@@ -13,6 +15,8 @@ const router = Router();
 
 router.use("/auth", authRoutes);
 router.use("/branches", branchRoutes);
+router.use("/users", userRoutes);
+router.use("/halls", hallRoutes);
 router.use("/leads", leadRoutes);
 router.use("/bookings", bookingRoutes);
 router.use("/events", eventRoutes);

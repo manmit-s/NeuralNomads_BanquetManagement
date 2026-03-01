@@ -11,40 +11,40 @@ const TOKEN_EXPIRY = "7d"; // 7 days
 
 export class AuthService {
     /**
-     * Register a new user with email + password.
-     * First user automatically becomes OWNER.
+     * Register a new OWNER (first-time setup only).
+     * Subsequent staff members are created via UserService by the owner.
      */
     static async signUp(data: {
         email: string;
         password: string;
         name: string;
         phone?: string;
-        role?: "OWNER" | "BRANCH_MANAGER" | "SALES" | "OPERATIONS";
-        branchId?: string;
     }) {
+        // Only allow signup if no users exist (first user = OWNER)
+        const userCount = await prisma.user.count();
+        if (userCount > 0) {
+            throw new AppError("An owner already exists. Staff accounts are created by the owner from the Team page.", 403);
+        }
+
         // Check if email already exists
         const existing = await prisma.user.findUnique({ where: { email: data.email } });
         if (existing) {
             throw new AppError("An account with this email already exists", 400);
         }
 
-        // Auto-detect role: first user is OWNER
-        const userCount = await prisma.user.count();
-        const role = userCount === 0 ? "OWNER" : (data.role || "BRANCH_MANAGER");
-
         // Hash password
         const passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS);
 
-        // Create user
+        // Create OWNER user
         const user = await prisma.user.create({
             data: {
-                authId: randomUUID(), // auto-generated unique ID
+                authId: randomUUID(),
                 email: data.email,
                 passwordHash,
                 name: data.name,
                 phone: data.phone,
-                role,
-                branchId: role === "OWNER" ? null : data.branchId,
+                role: "OWNER",
+                branchId: null,
             },
             select: {
                 id: true,
