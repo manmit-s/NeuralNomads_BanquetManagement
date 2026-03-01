@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { BookingService } from "../services/booking.service.js";
 import { parsePagination } from "../utils/helpers.js";
 import { calculateEventHealth } from "../utils/eventHealth.js";
+import { deriveBookingStatus } from "../utils/deriveStatus.js";
 
 export class BookingController {
     static async getAll(req: Request, res: Response, next: NextFunction) {
@@ -13,10 +14,21 @@ export class BookingController {
             };
             const result = await BookingService.findAll(req.branchScope, pagination, filters);
             const data = result.data.map((b: any) => {
-                const health = calculateEventHealth(b);
-                return { ...b, healthScore: health.score, healthLabel: health.label, healthBreakdown: health.breakdown };
+                const derivedStatus = deriveBookingStatus(b);
+                const withStatus = { ...b, status: derivedStatus };
+                const health = calculateEventHealth(withStatus);
+                return {
+                    ...withStatus,
+                    healthScore: health.score,
+                    healthLabel: health.label,
+                    healthBreakdown: health.breakdown,
+                };
             });
-            res.json({ success: true, data, meta: result.meta });
+            // If filtering by status, filter again after derivation
+            const filteredData = filters.status
+                ? data.filter((b: any) => b.status === filters.status)
+                : data;
+            res.json({ success: true, data: filteredData, meta: result.meta });
         } catch (error) { next(error); }
     }
 
@@ -51,6 +63,18 @@ export class BookingController {
                 req.branchScope
             );
             res.json({ success: true, data: bookings });
+        } catch (error) { next(error); }
+    }
+
+    static async updateLiveOps(req: Request, res: Response, next: NextFunction) {
+        try {
+            const allowed = ["kitchenReady", "decorationReady", "vendorsConfirmed", "staffAssigned", "eventClosed"];
+            const updates: any = {};
+            for (const key of allowed) {
+                if (typeof req.body[key] === "boolean") updates[key] = req.body[key];
+            }
+            const booking = await BookingService.update(req.params.id as string, updates, req.branchScope);
+            res.json({ success: true, data: booking });
         } catch (error) { next(error); }
     }
 }

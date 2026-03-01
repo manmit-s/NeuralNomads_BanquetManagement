@@ -16,6 +16,7 @@ router.get("/availability", authorize("OWNER", "BRANCH_MANAGER", "SALES", "OPERA
 router.get("/:id", authorize("OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"), BookingController.getById);
 router.post("/", authorize("OWNER", "BRANCH_MANAGER", "SALES"), validate(createBookingSchema), BookingController.create);
 router.patch("/:id", authorize("OWNER", "BRANCH_MANAGER", "SALES"), validate(updateBookingSchema), BookingController.update);
+router.patch("/:id/live-ops", authorize("OWNER", "BRANCH_MANAGER", "OPERATIONS"), BookingController.updateLiveOps);
 
 // ─── Resource Planning ───────────────────────────────────────
 router.get("/:id/resources", authorize("OWNER", "BRANCH_MANAGER", "OPERATIONS"), ResourceController.getResources);

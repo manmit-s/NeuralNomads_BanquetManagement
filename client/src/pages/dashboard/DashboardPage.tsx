@@ -18,9 +18,11 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { useBranchStore } from "@/stores/branchStore";
+import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 
 export default function DashboardPage() {
+    const navigate = useNavigate();
     const { selectedBranchId, branches } = useBranchStore();
     const [apiSummary, setApiSummary] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -28,6 +30,7 @@ export default function DashboardPage() {
     const [apiBookings, setApiBookings] = useState<any[]>([]);
     const [apiLeads, setApiLeads] = useState<any[]>([]);
     const [apiInventory, setApiInventory] = useState<any[]>([]);
+    const [revenueAlertCount, setRevenueAlertCount] = useState(0);
 
     // Fetch all dashboard data from API
     useEffect(() => {
@@ -38,12 +41,13 @@ export default function DashboardPage() {
                 const params: Record<string, string> = {};
                 if (selectedBranchId) params.branchId = selectedBranchId;
 
-                const [dashRes, branchRes, bookingsRes, leadsRes, inventoryRes] = await Promise.allSettled([
+                const [dashRes, branchRes, bookingsRes, leadsRes, inventoryRes, revenueRes] = await Promise.allSettled([
                     api.get("/reports/dashboard", { params, timeout: 5000 }),
                     api.get("/reports/branch-performance", { params, timeout: 5000 }),
                     api.get("/bookings", { params: { ...params, limit: "100" }, timeout: 5000 }),
                     api.get("/leads", { params: { ...params, limit: "100" }, timeout: 5000 }),
                     api.get("/inventory", { params: { ...params, limit: "100" }, timeout: 5000 }),
+                    api.get("/revenue/insights", { params, timeout: 5000 }),
                 ]);
 
                 if (!cancelled) {
@@ -64,6 +68,13 @@ export default function DashboardPage() {
                     if (inventoryRes.status === "fulfilled") {
                         const inv = inventoryRes.value.data?.data?.data || inventoryRes.value.data?.data || [];
                         setApiInventory(Array.isArray(inv) ? inv : []);
+                    }
+                    if (revenueRes.status === "fulfilled") {
+                        const insights = revenueRes.value.data?.data || [];
+                        const highCount = Array.isArray(insights)
+                            ? insights.filter((i: any) => i.severity === "HIGH").length
+                            : 0;
+                        setRevenueAlertCount(highCount);
                     }
                 }
             } catch {
@@ -310,6 +321,20 @@ export default function DashboardPage() {
                                 color="text-blue-400"
                                 bgColor="bg-blue-500/10"
                             />
+                            {revenueAlertCount > 0 && (
+                                <div
+                                    onClick={() => navigate("/revenue")}
+                                    className="cursor-pointer"
+                                >
+                                    <ActionItem
+                                        icon={TrendingUp}
+                                        label="Revenue Opportunity Detected"
+                                        sublabel={`${revenueAlertCount} high-priority insight${revenueAlertCount > 1 ? "s" : ""}`}
+                                        color="text-gold-400"
+                                        bgColor="bg-gold-500/10"
+                                    />
+                                </div>
+                            )}
                         </div>
                     </GlassCard>
 

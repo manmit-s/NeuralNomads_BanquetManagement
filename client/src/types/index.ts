@@ -7,7 +7,7 @@ export type LeadStatus =
     | "MENU_FINALIZATION" | "DECORATION" | "FULL_PAYMENT"
     | "SETTLEMENT" | "FEEDBACK" | "LOST";
 
-export type BookingStatus = "TENTATIVE" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+export type BookingStatus = "TENTATIVE" | "CONFIRMED" | "LIVE" | "COMPLETED" | "CANCELLED";
 export type EventStatus = "UPCOMING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 export type InvoiceStatus = "DRAFT" | "SENT" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "CANCELLED";
 export type PaymentMethod = "CASH" | "CARD" | "UPI" | "BANK_TRANSFER" | "CHEQUE";
@@ -97,6 +97,11 @@ export interface Booking {
     event?: Event;
     invoice?: Invoice;
     createdAt: string;
+    eventClosed?: boolean;
+    kitchenReady?: boolean;
+    decorationReady?: boolean;
+    vendorsConfirmed?: boolean;
+    staffAssigned?: boolean;
     healthScore?: number;
     healthLabel?: "Healthy" | "Needs Attention" | "High Risk";
     healthBreakdown?: {

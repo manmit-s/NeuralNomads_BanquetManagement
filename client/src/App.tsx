@@ -20,6 +20,7 @@ import ReportsPage from "@/pages/reports/ReportsPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import OnboardingPage from "@/pages/onboarding/OnboardingPage";
 import TeamPage from "@/pages/team/TeamPage";
+import RevenueInsightsPage from "@/pages/revenue/RevenueInsightsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuthStore();
@@ -70,6 +71,7 @@ function AppRoutes() {
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/revenue" element={<RevenueInsightsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/team" element={<TeamPage />} />
             </Route>

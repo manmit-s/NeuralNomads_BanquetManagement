@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
     BookOpen,
@@ -10,10 +10,17 @@ import {
     Eye,
     ChevronLeft,
     ChevronRight,
-    CheckCircle2,
     XCircle,
     ClipboardList,
     Activity,
+    ChefHat,
+    Sparkles,
+    Truck,
+    UserCheck,
+    Power,
+    Clock,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
 import ResourceDrawer from "@/components/bookings/ResourceDrawer";
 import PageHeader from "@/components/ui/PageHeader";
@@ -29,6 +36,95 @@ import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
+/* ── Live Operations Panel (embedded in card) ── */
+function LiveOpsPanel({
+    booking,
+    onUpdate,
+    loading,
+}: {
+    booking: Booking;
+    onUpdate: (id: string, field: string, val: boolean) => void;
+    loading: boolean;
+}) {
+    const [now, setNow] = useState(Date.now());
+
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), 60_000);
+        return () => clearInterval(id);
+    }, []);
+
+    // Countdown / elapsed text
+    const startMs = booking.eventDate
+        ? new Date(`${booking.eventDate}T${booking.startTime || "00:00"}`).getTime()
+        : 0;
+    const diff = startMs - now;
+    let timeText = "";
+    if (diff > 0) {
+        const h = Math.floor(diff / 3_600_000);
+        const m = Math.floor((diff % 3_600_000) / 60_000);
+        timeText = `Starts in ${h}h ${m}m`;
+    } else {
+        timeText = "Event in progress";
+    }
+
+    const paidPct =
+        booking.totalAmount && booking.totalAmount > 0
+            ? Math.min(100, Math.round(((booking.paidAmount || 0) / booking.totalAmount) * 100))
+            : 0;
+
+    const toggles: { label: string; icon: React.ReactNode; field: string; value: boolean }[] = [
+        { label: "Kitchen", icon: <ChefHat className="h-4 w-4" />, field: "kitchenReady", value: !!booking.kitchenReady },
+        { label: "Décor", icon: <Sparkles className="h-4 w-4" />, field: "decorationReady", value: !!booking.decorationReady },
+        { label: "Vendors", icon: <Truck className="h-4 w-4" />, field: "vendorsConfirmed", value: !!booking.vendorsConfirmed },
+        { label: "Staff", icon: <UserCheck className="h-4 w-4" />, field: "staffAssigned", value: !!booking.staffAssigned },
+    ];
+
+    return (
+        <div className="border-t border-white/5 px-5 py-4 bg-white/[0.02] space-y-3">
+            {/* Top row: countdown + payment */}
+            <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-orange-400 font-medium">
+                    <Clock className="h-3.5 w-3.5" />
+                    {timeText}
+                </span>
+                <span className="text-muted">
+                    Payment: <span className={cn("font-semibold", paidPct >= 100 ? "text-green-400" : paidPct >= 50 ? "text-yellow-400" : "text-red-400")}>{paidPct}%</span>
+                </span>
+            </div>
+
+            {/* Toggle buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {toggles.map((t) => (
+                    <button
+                        key={t.field}
+                        onClick={(e) => { e.stopPropagation(); onUpdate(booking.id, t.field, !t.value); }}
+                        disabled={loading}
+                        className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all disabled:opacity-50",
+                            t.value
+                                ? "bg-green-600/20 border-green-500/30 text-green-400"
+                                : "bg-white/5 border-white/10 text-muted hover:text-white"
+                        )}
+                    >
+                        {t.icon}
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Close Event */}
+            <button
+                onClick={(e) => { e.stopPropagation(); onUpdate(booking.id, "eventClosed", true); }}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-400 transition-all disabled:opacity-50"
+            >
+                <Power className="h-3.5 w-3.5" />
+                Close Event
+            </button>
+        </div>
+    );
+}
+
 export default function BookingsPage() {
     const navigate = useNavigate();
     const { data: bookingsData, refetch } = useApiWithFallback<Booking[]>("/bookings", DEMO_BOOKINGS, { transform: normalizeBookings });
@@ -38,18 +134,33 @@ export default function BookingsPage() {
     const [updating, setUpdating] = useState(false);
     const [resourceBookingId, setResourceBookingId] = useState<string | null>(null);
     const [resourceDrawerOpen, setResourceDrawerOpen] = useState(false);
+    const [expandedLive, setExpandedLive] = useState<string | null>(null);
+    const [opsLoading, setOpsLoading] = useState(false);
     const limit = 15;
 
-    const handleStatusChange = async (bookingId: string, newStatus: string) => {
+    const handleCancel = async (bookingId: string) => {
         setUpdating(true);
         try {
-            await api.patch(`/bookings/${bookingId}`, { status: newStatus });
-            toast.success(`Booking ${newStatus.toLowerCase()} successfully`);
+            await api.patch(`/bookings/${bookingId}`, { status: "CANCELLED" });
+            toast.success("Booking cancelled");
             refetch();
         } catch (err: any) {
-            toast.error(err?.response?.data?.message || "Failed to update status");
+            toast.error(err?.response?.data?.message || "Failed to cancel");
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const handleLiveOps = async (bookingId: string, field: string, value: boolean) => {
+        setOpsLoading(true);
+        try {
+            await api.patch(`/bookings/${bookingId}/live-ops`, { [field]: value });
+            toast.success(field === "eventClosed" ? "Event closed" : "Updated");
+            refetch();
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to update");
+        } finally {
+            setOpsLoading(false);
         }
     };
 
@@ -72,7 +183,7 @@ export default function BookingsPage() {
     const totalPages = Math.ceil(total / limit);
     const bookings = allBookings.slice((page - 1) * limit, page * limit);
 
-    const statuses = ["ALL", "CONFIRMED", "TENTATIVE", "COMPLETED", "CANCELLED"];
+    const statuses = ["ALL", "CONFIRMED", "TENTATIVE", "LIVE", "COMPLETED", "CANCELLED"];
 
     return (
         <div>
@@ -157,16 +268,16 @@ export default function BookingsPage() {
                                             </div>
 
                                             <div>
-                                                <div className="flex items-center gap-3 mb-1">
+                                                <div className="flex items-center gap-3 mb-1 flex-wrap">
                                                     <h3 className="text-sm font-semibold text-white">
                                                         {booking.customerName}
                                                     </h3>
                                                     <StatusBadge status={booking.status} />
                                                     {booking.healthScore !== undefined && (
-                                                        <div className="relative group">
+                                                        <div className="relative group/health">
                                                             <span
                                                                 className={cn(
-                                                                    "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full cursor-default",
+                                                                    "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full cursor-default whitespace-nowrap",
                                                                     booking.healthScore >= 80
                                                                         ? "bg-green-500/10 text-green-400"
                                                                         : booking.healthScore >= 60
@@ -178,8 +289,8 @@ export default function BookingsPage() {
                                                                 {booking.healthScore}% – {booking.healthLabel}
                                                             </span>
                                                             {booking.healthBreakdown && (
-                                                                <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover:block w-48 p-2.5 rounded-lg bg-slate-800 border border-white/10 shadow-xl text-[11px] space-y-1">
-                                                                    <p className="text-white font-semibold mb-1.5">Health Breakdown</p>
+                                                                <div className="absolute left-0 top-full mt-2 z-50 hidden group-hover/health:block w-[260px] p-3 rounded-lg bg-slate-800 border border-white/10 shadow-2xl text-xs">
+                                                                    <p className="text-white font-semibold mb-2">Health Breakdown</p>
                                                                     {([
                                                                         ["Payment", booking.healthBreakdown.payment, 25],
                                                                         ["Vendor", booking.healthBreakdown.vendor, 15],
@@ -188,10 +299,10 @@ export default function BookingsPage() {
                                                                         ["Stock", booking.healthBreakdown.stock, 20],
                                                                         ["Follow-ups", booking.healthBreakdown.followUps, 15],
                                                                     ] as [string, number, number][]).map(([label, val, max]) => (
-                                                                        <div key={label} className="flex items-center justify-between">
+                                                                        <div key={label} className="flex items-center justify-between py-0.5">
                                                                             <span className="text-muted">{label}</span>
                                                                             <span className={cn(
-                                                                                "font-medium",
+                                                                                "font-medium tabular-nums",
                                                                                 val >= max ? "text-green-400" : val > 0 ? "text-yellow-400" : "text-red-400"
                                                                             )}>
                                                                                 {val}/{max}
@@ -236,49 +347,45 @@ export default function BookingsPage() {
                                                 </div>
                                             )}
 
-                                            {/* Status action buttons */}
+                                            {/* Cancel button for TENTATIVE */}
                                             {booking.status === "TENTATIVE" && (
-                                                <div className="flex items-center gap-1">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, "CONFIRMED"); }}
-                                                        disabled={updating}
-                                                        className="p-2 rounded-lg bg-green-600/20 hover:bg-green-600/40 text-green-400 transition-all disabled:opacity-50"
-                                                        title="Confirm booking"
-                                                    >
-                                                        <CheckCircle2 className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, "CANCELLED"); }}
-                                                        disabled={updating}
-                                                        className="p-2 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 transition-all disabled:opacity-50"
-                                                        title="Cancel booking"
-                                                    >
-                                                        <XCircle className="h-4 w-4" />
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleCancel(booking.id); }}
+                                                    disabled={updating}
+                                                    className="p-2 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 transition-all disabled:opacity-50"
+                                                    title="Cancel booking"
+                                                >
+                                                    <XCircle className="h-4 w-4" />
+                                                </button>
                                             )}
+
+                                            {/* Resource planner for CONFIRMED */}
                                             {booking.status === "CONFIRMED" && (
-                                                <div className="flex items-center gap-1">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setResourceBookingId(booking.id);
-                                                            setResourceDrawerOpen(true);
-                                                        }}
-                                                        className="p-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 transition-all"
-                                                        title="Resource Planner"
-                                                    >
-                                                        <ClipboardList className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, "COMPLETED"); }}
-                                                        disabled={updating}
-                                                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 transition-all disabled:opacity-50"
-                                                        title="Mark completed"
-                                                    >
-                                                        Complete
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setResourceBookingId(booking.id);
+                                                        setResourceDrawerOpen(true);
+                                                    }}
+                                                    className="p-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 transition-all"
+                                                    title="Resource Planner"
+                                                >
+                                                    <ClipboardList className="h-4 w-4" />
+                                                </button>
+                                            )}
+
+                                            {/* Expand live panel toggle */}
+                                            {booking.status === "LIVE" && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setExpandedLive(expandedLive === booking.id ? null : booking.id);
+                                                    }}
+                                                    className="p-2 rounded-lg bg-orange-600/20 hover:bg-orange-600/40 text-orange-400 transition-all"
+                                                    title="Live Operations"
+                                                >
+                                                    {expandedLive === booking.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                                </button>
                                             )}
 
                                             <button
@@ -289,6 +396,15 @@ export default function BookingsPage() {
                                             </button>
                                         </div>
                                     </div>
+
+                                    {/* Live Operations Panel */}
+                                    {booking.status === "LIVE" && expandedLive === booking.id && (
+                                        <LiveOpsPanel
+                                            booking={booking}
+                                            onUpdate={handleLiveOps}
+                                            loading={opsLoading}
+                                        />
+                                    )}
                                 </GlassCard>
                             </motion.div>
                         ))}

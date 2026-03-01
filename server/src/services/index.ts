@@ -6,3 +6,4 @@ export { EventService } from "./event.service.js";
 export { InventoryService } from "./inventory.service.js";
 export { BillingService } from "./billing.service.js";
 export { ReportService } from "./report.service.js";
+export { RevenueService } from "./revenue.service.js";

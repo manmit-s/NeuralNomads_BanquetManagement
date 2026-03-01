@@ -9,6 +9,7 @@ import eventRoutes from "./event.routes.js";
 import inventoryRoutes from "./inventory.routes.js";
 import billingRoutes from "./billing.routes.js";
 import reportRoutes from "./report.routes.js";
+import revenueRoutes from "./revenue.routes.js";
 import { prisma } from "../lib/prisma.js";
 
 const router = Router();
@@ -23,6 +24,7 @@ router.use("/events", eventRoutes);
 router.use("/inventory", inventoryRoutes);
 router.use("/billing", billingRoutes);
 router.use("/reports", reportRoutes);
+router.use("/revenue", revenueRoutes);
 
 // Health check (no auth needed)
 router.get("/health", async (_req, res) => {
