@@ -20,6 +20,10 @@ import ReportsPage from "@/pages/reports/ReportsPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import OnboardingPage from "@/pages/onboarding/OnboardingPage";
 import TeamPage from "@/pages/team/TeamPage";
+import AIRevenuePage from "@/pages/ai-revenue/AIRevenuePage";
+import BillingPage from "@/pages/billing/BillingPage";
+import ReputationPage from "@/pages/reputation/ReputationPage";
+import BranchHealthPage from "@/pages/branch-health/BranchHealthPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuthStore();
@@ -31,11 +35,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
-    const { user, loading, loadProfile } = useAuthStore();
+    const { user, loading, loadProfile, signOut } = useAuthStore();
 
     useEffect(() => {
         loadProfile();
     }, [loadProfile]);
+
+    useEffect(() => {
+        const handleAuthExpired = () => {
+            signOut();
+        };
+        window.addEventListener("auth-expired", handleAuthExpired);
+        return () => window.removeEventListener("auth-expired", handleAuthExpired);
+    }, [signOut]);
 
     if (loading) return <LoadingSpinner fullScreen />;
 
@@ -70,6 +82,10 @@ function AppRoutes() {
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/ai-revenue" element={<AIRevenuePage />} />
+                <Route path="/billing" element={<BillingPage />} />
+                <Route path="/reputation" element={<ReputationPage />} />
+                <Route path="/branch-health" element={<BranchHealthPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/team" element={<TeamPage />} />
             </Route>

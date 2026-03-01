@@ -136,6 +136,7 @@ export class AuthService {
         return user;
     }
 
+
     /**
      * Generate a signed JWT for the given user.
      */

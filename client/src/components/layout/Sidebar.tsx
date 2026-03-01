@@ -12,6 +12,10 @@ import {
     LogOut,
     Sparkles,
     UserPlus,
+    BrainCircuit,
+    Receipt,
+    Shield,
+    Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -23,8 +27,12 @@ const navItems = [
     { label: "Bookings", icon: CalendarDays, path: "/bookings", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
     { label: "Calendar", icon: Calendar, path: "/calendar", roles: ["OWNER", "BRANCH_MANAGER", "SALES", "OPERATIONS"] },
     { label: "Inventory", icon: Package, path: "/inventory", roles: ["OWNER", "BRANCH_MANAGER", "OPERATIONS"] },
+    { label: "Billing", icon: Receipt, path: "/billing", roles: ["OWNER", "BRANCH_MANAGER", "SALES"] },
     { label: "Reports", icon: BarChart3, path: "/reports", roles: ["OWNER", "BRANCH_MANAGER"] },
     { label: "Team", icon: UserPlus, path: "/team", roles: ["OWNER"] },
+    { label: "AI Revenue", icon: BrainCircuit, path: "/ai-revenue", roles: ["OWNER", "BRANCH_MANAGER"] },
+    { label: "Reputation", icon: Shield, path: "/reputation", roles: ["OWNER", "BRANCH_MANAGER"] },
+    { label: "Branch Health", icon: Activity, path: "/branch-health", roles: ["OWNER", "BRANCH_MANAGER"] },
     { label: "Settings", icon: Settings, path: "/settings", roles: ["OWNER"] },
 ];
 

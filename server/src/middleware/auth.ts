@@ -18,7 +18,22 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
             throw new UnauthorizedError("Missing or malformed authorization header");
         }
 
-        const token = authHeader.split(" ")[1];
+        let rawToken = authHeader.split(" ")[1];
+        const token = rawToken ? rawToken.replace(/['"]+/g, '') : "";
+
+        // ── DEMO BYPASS ──
+        if (token === "DEMO_TOKEN") {
+            req.user = {
+                id: "demo-owner",
+                authId: "demo-auth",
+                email: "demo@eventora.com",
+                name: "Raj Patel",
+                role: "OWNER",
+                isActive: true,
+                branchId: null
+            } as unknown as AuthUser;
+            return next();
+        }
 
         // Verify our own JWT
         let decoded: { sub: string; email: string; role: string };

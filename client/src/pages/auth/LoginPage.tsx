@@ -23,6 +23,11 @@ export default function LoginPage() {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
+    const handleBypass = () => {
+        localStorage.setItem("access_token", "DEMO_TOKEN");
+        window.location.href = "/";
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -214,21 +219,32 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="btn-gold w-full py-3 mt-6 font-semibold tracking-wide relative overflow-hidden group"
-                        >
-                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none" />
-                            {loading ? (
-                                <div className="flex items-center justify-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin text-black" />
-                                    <span>{isSignUp ? "Creating Account..." : "Signing in..."}</span>
-                                </div>
-                            ) : (
-                                <span>{isSignUp ? "Create Account" : "Sign In"}</span>
-                            )}
-                        </button>
+                        <div className="space-y-3">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="btn-gold w-full py-3 mt-6 font-semibold tracking-wide relative overflow-hidden group"
+                            >
+                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none" />
+                                {loading ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin text-black" />
+                                        <span>{isSignUp ? "Creating Account..." : "Signing in..."}</span>
+                                    </div>
+                                ) : (
+                                    <span>{isSignUp ? "Create Account" : "Sign In"}</span>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleBypass}
+                                className="w-full py-3 rounded-xl border border-gold-500/20 text-gold-400 hover:bg-gold-500/10 transition-colors text-sm font-medium"
+                            >
+                                Bypass Login (Quick Test)
+                            </button>
+                        </div>
+
                     </form>
 
                     <div className="mt-8 pt-6 border-t border-white/5 text-center">
