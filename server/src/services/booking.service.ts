@@ -105,8 +105,25 @@ export class BookingService {
                 where,
                 include: {
                     hall: { select: { id: true, name: true } },
-                    lead: { select: { id: true, customerName: true, customerPhone: true, customerEmail: true, eventType: true, eventDate: true } },
+                    lead: {
+                        select: {
+                            id: true, customerName: true, customerPhone: true,
+                            customerEmail: true, eventType: true, eventDate: true,
+                            activities: { select: { action: true } },
+                        },
+                    },
                     branch: { select: { id: true, name: true } },
+                    event: {
+                        select: {
+                            id: true,
+                            menuSelections: { select: { id: true } },
+                            vendorBookings: { select: { id: true } },
+                        },
+                    },
+                    invoice: { select: { paidAmount: true } },
+                    bookingResources: {
+                        select: { calculatedQty: true, manualQty: true, isManuallyEdited: true },
+                    },
                 },
                 skip: (pagination.page - 1) * pagination.limit,
                 take: pagination.limit,

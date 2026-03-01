@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { BookingService } from "../services/booking.service.js";
 import { parsePagination } from "../utils/helpers.js";
+import { calculateEventHealth } from "../utils/eventHealth.js";
 
 export class BookingController {
     static async getAll(req: Request, res: Response, next: NextFunction) {
@@ -11,7 +12,11 @@ export class BookingController {
                 hallId: req.query.hallId as string | undefined,
             };
             const result = await BookingService.findAll(req.branchScope, pagination, filters);
-            res.json({ success: true, ...result });
+            const data = result.data.map((b: any) => {
+                const health = calculateEventHealth(b);
+                return { ...b, healthScore: health.score, healthLabel: health.label, healthBreakdown: health.breakdown };
+            });
+            res.json({ success: true, data, meta: result.meta });
         } catch (error) { next(error); }
     }
 
