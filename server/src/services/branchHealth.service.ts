@@ -7,35 +7,45 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
  * Fetches REAL branch and booking data from the database,
  * then forwards it to the Python microservice for health analysis.
  */
+import { supabaseAdmin } from "../lib/supabase.js";
+
 export const fetchRealBranchData = async (branchScope?: string) => {
-    // 1. Get all active branches (or scoped to one branch)
-    const where: any = { isActive: true };
-    if (branchScope) where.id = branchScope;
+    // Fetch branches with their related halls and non-cancelled bookings using Supabase REST
+    let query = supabaseAdmin
+        .from('branches')
+        .select(`
+            id,
+            name,
+            isActive,
+            halls (capacity),
+            bookings:bookings (status, totalAmount, guestCount)
+        `)
+        .eq('isActive', true);
 
-    const branches = await prisma.branch.findMany({
-        where,
-        select: {
-            id: true,
-            name: true,
-            halls: { select: { capacity: true } },
-            bookings: {
-                where: { status: { not: "CANCELLED" } },
-                select: { totalAmount: true, guestCount: true },
-            },
-        },
-    });
+    if (branchScope) {
+        query = query.eq('id', branchScope);
+    }
 
-    // 2. Transform into the format the Python microservice expects
-    const bookings = branches.map((branch) => {
-        const totalRevenue = branch.bookings.reduce(
-            (sum: number, b: { totalAmount: number }) => sum + b.totalAmount,
+    const { data: branches, error } = await query;
+
+    if (error || !branches) {
+        console.error("[HealthService] Supabase fetch error:", error);
+        return [];
+    }
+
+    // Transform into the format the Python microservice expects
+    const bookings = branches.map((branch: any) => {
+        const validBookings = (branch.bookings || []).filter((b: any) => b.status !== "CANCELLED");
+
+        const totalRevenue = validBookings.reduce(
+            (sum: number, b: any) => sum + (b.totalAmount || 0),
             0
         );
-        const totalCapacity = branch.halls.reduce(
-            (sum: number, h: { capacity: number }) => sum + h.capacity,
+        const totalCapacity = (branch.halls || []).reduce(
+            (sum: number, h: any) => sum + (h.capacity || 0),
             0
         );
-        const totalBooked = branch.bookings.length;
+        const totalBooked = validBookings.length;
 
         return {
             branch_id: branch.id,
